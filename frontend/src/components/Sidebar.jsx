@@ -134,8 +134,12 @@ const Sidebar = () => {
           className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-800/40 rounded-xl cursor-pointer transition-colors"
           title="View Profile Dashboard"
         >
-          <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-indigo-400 shrink-0">
-            {user?.name?.slice(0, 2).toUpperCase()}
+          <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-750 flex items-center justify-center font-bold text-indigo-400 shrink-0 overflow-hidden">
+            {user?.profileImage ? (
+              <img src={`http://localhost:5000${user.profileImage}`} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              user?.name?.slice(0, 2).toUpperCase()
+            )}
           </div>
           <div className="overflow-hidden">
             <h4 className="text-xs font-semibold text-slate-200 truncate">{user?.name}</h4>

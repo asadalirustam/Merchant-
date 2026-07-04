@@ -249,3 +249,42 @@ export const resetPassword = async (req, res) => {
     return sendError(res, 'Reset password failed', error, 500);
   }
 };
+
+// @desc    Update user profile (name, profileImage)
+// @route   PUT /api/auth/update-profile
+// @access  Private
+export const updateProfile = async (req, res) => {
+  const { name } = req.body;
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return sendError(res, 'User not found', null, 404);
+    }
+
+    if (name) {
+      user.name = name;
+    }
+
+    if (req.file) {
+      // Save local path for avatar upload
+      user.profileImage = `/uploads/${req.file.filename}`;
+    }
+
+    await user.save();
+
+    await logActivity(user._id, 'Profile Updated', 'User updated profile details', req);
+
+    return sendSuccess(res, 'Profile updated successfully', {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      profileImage: user.profileImage,
+      createdAt: user.createdAt,
+    });
+  } catch (error) {
+    return sendError(res, 'Profile update failed', error, 500);
+  }
+};

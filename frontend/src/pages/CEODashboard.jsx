@@ -132,7 +132,10 @@ const CEODashboard = () => {
             </div>
 
             {/* Total Sales */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => navigate('/reports', { state: { startDate: '', endDate: '' } })}
+              className="bg-slate-900 border border-slate-800 hover:border-emerald-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <TrendingUp className="w-5 h-5" />
               </div>
@@ -143,7 +146,10 @@ const CEODashboard = () => {
             </div>
 
             {/* Total Revenue */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => navigate('/reports', { state: { startDate: '', endDate: '' } })}
+              className="bg-slate-900 border border-slate-800 hover:border-violet-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
                 <DollarSign className="w-5 h-5" />
               </div>
@@ -157,7 +163,13 @@ const CEODashboard = () => {
             </div>
 
             {/* Today's Sales */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                navigate('/reports', { state: { startDate: todayStr, endDate: todayStr } });
+              }}
+              className="bg-slate-900 border border-slate-800 hover:border-teal-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
                 <DollarSign className="w-5 h-5" />
               </div>
@@ -171,7 +183,15 @@ const CEODashboard = () => {
             </div>
 
             {/* Monthly Sales */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => {
+                const now = new Date();
+                const firstDayStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                const lastDayStr = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+                navigate('/reports', { state: { startDate: firstDayStr, endDate: lastDayStr } });
+              }}
+              className="bg-slate-900 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
                 <DollarSign className="w-5 h-5" />
               </div>
@@ -185,7 +205,10 @@ const CEODashboard = () => {
             </div>
 
             {/* Available Stock */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => navigate('/products', { state: { stockStatus: '' } })}
+              className="bg-slate-900 border border-slate-800 hover:border-sky-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
                 <Package className="w-5 h-5" />
               </div>
@@ -206,6 +229,51 @@ const CEODashboard = () => {
               <div>
                 <p className="text-slate-400 text-xs font-medium">Low Stock Products</p>
                 <h4 className="text-xl font-bold text-slate-100 mt-0.5">{cards.lowStockProducts}</h4>
+              </div>
+            </div>
+          </div>
+
+          {/* Profit & Cost Analytics Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Total Inventory Cost */}
+            <div className="bg-slate-900 border border-slate-800 hover:border-orange-500/40 rounded-2xl p-5 shadow-xl flex items-center gap-4 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs font-medium">Total Inventory Cost</p>
+                <p className="text-[10px] text-slate-500 font-medium">Amount spent to stock store</p>
+                <h4 className="text-xl font-bold text-orange-400 mt-0.5">
+                  {currencySymbol}{cards.totalInventoryCost?.toLocaleString() ?? 0}
+                </h4>
+              </div>
+            </div>
+
+            {/* Potential Stock Profit */}
+            <div className="bg-slate-900 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-5 shadow-xl flex items-center gap-4 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs font-medium">Potential Stock Profit</p>
+                <p className="text-[10px] text-slate-500 font-medium">Unrealized margin in warehouse</p>
+                <h4 className="text-xl font-bold text-emerald-400 mt-0.5">
+                  {currencySymbol}{cards.inventoryPotentialProfit?.toLocaleString() ?? 0}
+                </h4>
+              </div>
+            </div>
+
+            {/* Total Sales Profit (Realized) */}
+            <div className="bg-slate-900 border border-slate-800 hover:border-violet-500/40 rounded-2xl p-5 shadow-xl flex items-center gap-4 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs font-medium">Total Sales Profit</p>
+                <p className="text-[10px] text-slate-500 font-medium">Realized profit from all sales</p>
+                <h4 className="text-xl font-bold text-violet-400 mt-0.5">
+                  {currencySymbol}{cards.totalSalesProfit?.toLocaleString() ?? 0}
+                </h4>
               </div>
             </div>
           </div>

@@ -227,6 +227,33 @@ const Login = () => {
                 </label>
               </div>
 
+              {/* Quick Demo Autofill Accounts */}
+              <div className="bg-slate-950/60 border border-slate-850/50 rounded-2xl p-3 space-y-2 mt-2">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center text-slate-550">Quick Demo Autofill</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('asadalirustam703@gmail.com');
+                      setPassword('password123');
+                    }}
+                    className="py-1.5 px-2 bg-slate-900 border border-slate-800 hover:border-violet-500/35 hover:bg-slate-800 text-[11px] font-semibold text-violet-400 rounded-xl cursor-pointer transition-all"
+                  >
+                    CEO Demo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('asadalirustam70@gmail.com');
+                      setPassword('password123');
+                    }}
+                    className="py-1.5 px-2 bg-slate-900 border border-slate-800 hover:border-indigo-500/35 hover:bg-slate-800 text-[11px] font-semibold text-indigo-400 rounded-xl cursor-pointer transition-all"
+                  >
+                    Admin Demo
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}

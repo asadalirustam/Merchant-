@@ -60,6 +60,7 @@ const Products = () => {
   const [productCode, setProductCode] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
+  const [costPrice, setCostPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState(null);
@@ -108,6 +109,7 @@ const Products = () => {
     setProductCode('');
     setCategory('');
     setPrice('');
+    setCostPrice('');
     setQuantity('');
     setDescription('');
     setImageFile(null);
@@ -124,6 +126,7 @@ const Products = () => {
     setProductCode(prod.productCode);
     setCategory(prod.category || '');
     setPrice(prod.price);
+    setCostPrice(prod.costPrice ?? '');
     setQuantity(prod.quantity);
     setDescription(prod.description || '');
     setImageFile(null);
@@ -154,6 +157,7 @@ const Products = () => {
     formData.append('productCode', productCode);
     formData.append('category', category);
     formData.append('price', price === '' ? 0 : Number(price));
+    formData.append('costPrice', costPrice === '' ? 0 : Number(costPrice));
     formData.append('quantity', quantity === '' ? 0 : Number(quantity));
     formData.append('description', description);
     if (imageFile) {
@@ -510,9 +514,10 @@ const Products = () => {
                 </div>
               </div>
 
+              {/* Pricing Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Product Price ({currencySymbol})</label>
+                  <label className="text-xs text-slate-400 block mb-1">Selling Price ({currencySymbol})</label>
                   <input
                     type="number"
                     value={price}
@@ -524,16 +529,30 @@ const Products = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Stock Quantity</label>
+                  <label className="text-xs text-amber-400 block mb-1 font-semibold">Cost Price ({currencySymbol}) <span className="text-slate-500 font-normal">(purchase cost)</span></label>
                   <input
                     type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    value={costPrice}
+                    onChange={(e) => setCostPrice(e.target.value)}
                     min={0}
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 text-xs text-slate-100 outline-none"
-                    required
+                    step="0.01"
+                    placeholder="0.00"
+                    className="w-full bg-slate-950 border border-amber-900/40 focus:border-amber-500 rounded-xl p-2.5 text-xs text-slate-100 outline-none"
                   />
                 </div>
+              </div>
+
+              {/* Stock Quantity */}
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Stock Quantity</label>
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  min={0}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 text-xs text-slate-100 outline-none"
+                  required
+                />
               </div>
 
               <div>

@@ -2,16 +2,62 @@ import { useState, useContext } from 'react';
 import API from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
-import { User, Mail, Calendar, KeyRound, ShieldCheck, Lock } from 'lucide-react';
+import { User, Mail, Calendar, KeyRound, ShieldCheck, Lock, Camera } from 'lucide-react';
 
 const Profile = () => {
-  const { user } = useContext(AuthContext);
+  const { user, setUser } = useContext(AuthContext);
   const { addToast } = useContext(NotificationContext);
+
+  const [name, setName] = useState(user?.name || '');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(
+    user?.profileImage ? `http://localhost:5000${user.profileImage}` : ''
+  );
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const handleProfileUpdateSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      addToast('Validation Error', 'Name cannot be empty.', 'warning');
+      return;
+    }
+
+    setProfileLoading(true);
+    const formData = new FormData();
+    formData.append('name', name);
+    if (imageFile) {
+      formData.append('profileImage', imageFile);
+    }
+
+    try {
+      const { data } = await API.put('/auth/update-profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (data.success) {
+        addToast('Success', 'Profile details updated.', 'success');
+        setUser(data.data);
+        localStorage.setItem('user', JSON.stringify(data.data));
+        setImageFile(null);
+      }
+    } catch (error) {
+      addToast(
+        'Update Failed',
+        error.response?.data?.message || 'Unable to update profile.',
+        'error'
+      );
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const handlePasswordChangeSubmit = async (e) => {
     e.preventDefault();
@@ -81,10 +127,32 @@ const Profile = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Card */}
         <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col items-center text-center space-y-4">
-          <div className="w-20 h-20 rounded-full bg-indigo-500/10 border-2 border-indigo-500/35 flex items-center justify-center font-extrabold text-2xl text-indigo-400 shadow-md">
-            {user?.name?.slice(0, 2).toUpperCase()}
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-full bg-indigo-500/10 border-2 border-indigo-500/35 flex items-center justify-center font-extrabold text-3xl text-indigo-400 shadow-md overflow-hidden">
+              {imagePreview ? (
+                <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                user?.name?.slice(0, 2).toUpperCase()
+              )}
+            </div>
+            <label className="absolute bottom-0 right-0 p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full border border-slate-900 cursor-pointer shadow-md transition-colors">
+              <Camera className="w-3.5 h-3.5" />
+              <input
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                  }
+                }}
+                className="hidden"
+                accept="image/*"
+              />
+            </label>
           </div>
-          <div>
+
+          <div className="w-full">
             <h2 className="text-lg font-bold text-slate-100">{user?.name}</h2>
             <span
               className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${
@@ -96,6 +164,28 @@ const Profile = () => {
               {user?.role}
             </span>
           </div>
+
+          {/* Profile Editor Form */}
+          <form onSubmit={handleProfileUpdateSubmit} className="w-full space-y-3 pt-2">
+            <div>
+              <label className="text-[10px] text-slate-500 block text-left mb-1 font-semibold">Display Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl py-2 px-3 text-xs text-slate-100 outline-none"
+                placeholder="Full Name"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={profileLoading}
+              className="w-full py-2 bg-indigo-650 hover:bg-indigo-600 disabled:bg-slate-850 text-white rounded-xl text-xs font-semibold cursor-pointer transition-all shadow-md"
+            >
+              {profileLoading ? 'Saving...' : 'Save Profile Details'}
+            </button>
+          </form>
 
           <div className="w-full border-t border-slate-850 pt-4 space-y-3.5 text-left text-xs">
             <div className="flex items-center gap-2.5 text-slate-350">

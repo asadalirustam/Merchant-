@@ -29,7 +29,8 @@ export const createSale = async (req, res) => {
     const random = Math.floor(1000 + Math.random() * 9000);
     const invoiceNumber = `INV-${timestamp}-${random}`;
 
-    // Verify quantities of products in inventory first
+    // Load products once, verify stock, snapshot costPrice
+    const enrichedItems = [];
     for (const item of items) {
       const product = await Product.findById(item.product);
       if (!product) {
@@ -43,10 +44,17 @@ export const createSale = async (req, res) => {
           400
         );
       }
+      enrichedItems.push({
+        product: item.product,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        costPrice: product.costPrice || 0, // Snapshot at time of sale
+      });
     }
 
-    // Process actual stock decrements
-    for (const item of items) {
+    // Process actual stock decrements using enriched items
+    for (const item of enrichedItems) {
       const product = await Product.findById(item.product);
       product.quantity -= Number(item.quantity);
       await product.save();
@@ -68,10 +76,10 @@ export const createSale = async (req, res) => {
       );
     }
 
-    // Save final sale log
+    // Save final sale log with costPrice snapshots
     const sale = await Sale.create({
       invoiceNumber,
-      items,
+      items: enrichedItems,
       subTotal,
       discount: discount || 0,
       tax: tax || 0,
