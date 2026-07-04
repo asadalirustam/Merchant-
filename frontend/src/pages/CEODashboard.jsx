@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { SettingsContext } from '../context/SettingsContext';
@@ -29,6 +30,7 @@ import {
 } from 'recharts';
 
 const CEODashboard = () => {
+  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const { getCurrencySymbol } = useContext(SettingsContext);
   const { addToast } = useContext(NotificationContext);
@@ -116,7 +118,10 @@ const CEODashboard = () => {
             </div>
 
             {/* Total Products */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => navigate('/products', { state: { stockStatus: '' } })}
+              className="bg-slate-900 border border-slate-800 hover:border-indigo-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                 <Package className="w-5 h-5" />
               </div>
@@ -191,7 +196,10 @@ const CEODashboard = () => {
             </div>
 
             {/* Low Stock Items */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => navigate('/products', { state: { stockStatus: 'low' } })}
+              className="bg-slate-900 border border-slate-800 hover:border-rose-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cards.lowStockProducts > 0 ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-500'}`}>
                 <AlertTriangle className="w-5 h-5" />
               </div>
@@ -270,7 +278,10 @@ const CEODashboard = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {/* Total Products */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => navigate('/products', { state: { stockStatus: '' } })}
+              className="bg-slate-900 border border-slate-800 hover:border-blue-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
                 <Package className="w-5 h-5" />
               </div>
@@ -281,7 +292,10 @@ const CEODashboard = () => {
             </div>
 
             {/* Available Products */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => navigate('/products', { state: { stockStatus: '' } })}
+              className="bg-slate-900 border border-slate-800 hover:border-emerald-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
@@ -292,7 +306,10 @@ const CEODashboard = () => {
             </div>
 
             {/* Low Stock */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => navigate('/products', { state: { stockStatus: 'low' } })}
+              className="bg-slate-900 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cards.lowStockProducts > 0 ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-500'}`}>
                 <AlertTriangle className="w-5 h-5" />
               </div>
@@ -304,7 +321,10 @@ const CEODashboard = () => {
 
             {/* Out of Stock */}
             {/* Compute out of stock. It is totalProducts - inStockProducts where qty > 0 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">
+            <div
+              onClick={() => navigate('/products', { state: { stockStatus: 'out' } })}
+              className="bg-slate-900 border border-slate-800 hover:border-rose-500/40 hover:bg-slate-850/80 rounded-2xl p-5 shadow-xl flex items-center gap-4 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+            >
               <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
                 <XCircle className="w-5 h-5" />
               </div>

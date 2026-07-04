@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import API from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { SettingsContext } from '../context/SettingsContext';
@@ -28,10 +29,20 @@ const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const location = useLocation();
+
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [stockStatus, setStockStatus] = useState('');
+  const [stockStatus, setStockStatus] = useState(location.state?.stockStatus || '');
+
+  // Synchronize stock filter changes from navigation state (e.g. clicking dashboard cards)
+  useEffect(() => {
+    if (location.state && location.state.stockStatus !== undefined) {
+      setStockStatus(location.state.stockStatus);
+      setPage(1);
+    }
+  }, [location.state]);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -48,11 +59,12 @@ const Products = () => {
   const [name, setName] = useState('');
   const [productCode, setProductCode] = useState('');
   const [category, setCategory] = useState('');
-  const [price, setPrice] = useState(0);
-  const [quantity, setQuantity] = useState(0);
+  const [price, setPrice] = useState('');
+  const [quantity, setQuantity] = useState('');
   const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -95,11 +107,12 @@ const Products = () => {
     setName('');
     setProductCode('');
     setCategory('');
-    setPrice(0);
-    setQuantity(0);
+    setPrice('');
+    setQuantity('');
     setDescription('');
     setImageFile(null);
     setImagePreview('');
+    setIsCustomCategory(false);
     setIsModalOpen(true);
   };
 
@@ -115,6 +128,15 @@ const Products = () => {
     setDescription(prod.description || '');
     setImageFile(null);
     setImagePreview(prod.productImage ? `http://localhost:5000${prod.productImage}` : '');
+    
+    // Check if category is standard or custom
+    const defaultCats = ['Electronics', 'Groceries', 'Apparel', 'Home & Kitchen', 'Office Supplies'];
+    if (prod.category && !defaultCats.includes(prod.category)) {
+      setIsCustomCategory(true);
+    } else {
+      setIsCustomCategory(false);
+    }
+
     setIsModalOpen(true);
   };
 
@@ -122,7 +144,7 @@ const Products = () => {
     e.preventDefault();
     if (isCEO) return;
 
-    if (!name || !productCode || !category || price === undefined) {
+    if (!name || !productCode || !category || price === '') {
       addToast('Validation Error', 'Please complete all required fields', 'error');
       return;
     }
@@ -131,8 +153,8 @@ const Products = () => {
     formData.append('name', name);
     formData.append('productCode', productCode);
     formData.append('category', category);
-    formData.append('price', price);
-    formData.append('quantity', quantity);
+    formData.append('price', price === '' ? 0 : Number(price));
+    formData.append('quantity', quantity === '' ? 0 : Number(quantity));
     formData.append('description', description);
     if (imageFile) {
       formData.append('productImage', imageFile);
@@ -432,15 +454,59 @@ const Products = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Category (String)</label>
-                  <input
-                    type="text"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    placeholder="Electronics"
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 text-xs text-slate-100 outline-none"
-                    required
-                  />
+                  <label className="text-xs text-slate-400 block mb-1">Category</label>
+                  {!isCustomCategory ? (
+                    <select
+                      value={category}
+                      onChange={(e) => {
+                        if (e.target.value === '__custom__') {
+                          setIsCustomCategory(true);
+                          setCategory('');
+                        } else {
+                          setCategory(e.target.value);
+                        }
+                      }}
+                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 text-xs text-slate-100 outline-none cursor-pointer"
+                      required
+                    >
+                      <option value="">Select Category</option>
+                      {Array.from(new Set([
+                        'Electronics',
+                        'Groceries',
+                        'Apparel',
+                        'Home & Kitchen',
+                        'Office Supplies',
+                        ...products.map((p) => p.category).filter(Boolean)
+                      ])).map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                      <option value="__custom__" className="text-indigo-400 font-semibold">+ Add Custom Category...</option>
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        placeholder="Type new category..."
+                        className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 pr-8 text-xs text-slate-100 outline-none"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomCategory(false);
+                          setCategory('');
+                        }}
+                        className="absolute right-2 top-2.5 text-slate-450 hover:text-slate-200 cursor-pointer"
+                        title="Choose from list"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -450,7 +516,7 @@ const Products = () => {
                   <input
                     type="number"
                     value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
+                    onChange={(e) => setPrice(e.target.value)}
                     min={0}
                     step="0.01"
                     className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 text-xs text-slate-100 outline-none"
@@ -462,7 +528,7 @@ const Products = () => {
                   <input
                     type="number"
                     value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    onChange={(e) => setQuantity(e.target.value)}
                     min={0}
                     className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 text-xs text-slate-100 outline-none"
                     required
