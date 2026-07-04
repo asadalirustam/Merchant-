@@ -7,14 +7,11 @@ import { Bell, Moon, Sun, ShieldCheck, AlertTriangle } from 'lucide-react';
 const Navbar = () => {
   const { user } = useContext(AuthContext);
   const { notifications, clearNotifications } = useContext(NotificationContext);
-  const { settings, updateSettings } = useContext(SettingsContext);
+  const { theme, setTheme } = useContext(SettingsContext);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const toggleTheme = async () => {
-    const nextTheme = settings.theme === 'dark' ? 'light' : 'dark';
-    const formData = new FormData();
-    formData.append('theme', nextTheme);
-    await updateSettings(formData);
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   const getNotificationIcon = (type) => {
@@ -40,9 +37,9 @@ const Navbar = () => {
         <button
           onClick={toggleTheme}
           className="p-2 text-slate-400 hover:text-slate-200 rounded-xl hover:bg-slate-800 transition-colors"
-          title={`Switch to ${settings.theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
         >
-          {settings.theme === 'dark' ? (
+          {theme === 'dark' ? (
             <Sun className="w-5 h-5" />
           ) : (
             <Moon className="w-5 h-5" />

@@ -24,6 +24,7 @@ const POSBilling = () => {
   const { addToast } = useContext(NotificationContext);
   const currencySymbol = getCurrencySymbol();
 
+  const [allProducts, setAllProducts] = useState([]);
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState([]);
@@ -39,31 +40,44 @@ const POSBilling = () => {
 
   const searchInputRef = useRef(null);
 
-  // Focus search input on mount
+  const fetchAllProducts = async () => {
+    try {
+      const { data } = await API.get('/products');
+      if (data.success) {
+        const list = data.data.products || [];
+        setAllProducts(list);
+        setProducts(list);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Focus search input on mount and load products
   useEffect(() => {
+    fetchAllProducts();
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, []);
 
-  const handleSearch = async (e) => {
+  const handleSearch = (e) => {
     const val = e.target.value;
     setSearchQuery(val);
 
     if (val.trim().length === 0) {
-      setProducts([]);
+      setProducts(allProducts);
       return;
     }
 
-    try {
-      // Query backend product catalog
-      const { data } = await API.get(`/products?search=${val}`);
-      if (data.success) {
-        setProducts(data.data.products);
-      }
-    } catch (error) {
-      console.error(error);
-    }
+    const query = val.toLowerCase();
+    const filtered = allProducts.filter(
+      (prod) =>
+        prod.name.toLowerCase().includes(query) ||
+        prod.productCode.toLowerCase().includes(query) ||
+        (prod.category && prod.category.toLowerCase().includes(query))
+    );
+    setProducts(filtered);
   };
 
   const addToCart = (product) => {
@@ -100,7 +114,7 @@ const POSBilling = () => {
     }
 
     setSearchQuery('');
-    setProducts([]);
+    setProducts(allProducts);
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
@@ -169,6 +183,8 @@ const POSBilling = () => {
         setCart([]);
         setCustomerName('Guest');
         setDiscountPercent(0);
+        // Refresh product list to update remaining stock quantities
+        fetchAllProducts();
       }
     } catch (error) {
       addToast('Checkout Failed', error.response?.data?.message || 'Transaction could not be completed', 'error');
@@ -285,13 +301,11 @@ const POSBilling = () => {
 
         {/* Live Search List Drawer */}
         <div className="flex-1 overflow-y-auto min-h-0 bg-slate-950/40 rounded-xl border border-slate-850 p-2 space-y-2">
-          {searchQuery.trim().length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-600 text-xs">
+          {products.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs py-8">
               <QrCode className="w-12 h-12 text-slate-800 mb-2" />
-              <span>Awaiting barcode scans or item search keywords...</span>
+              <span>No products found matching your search.</span>
             </div>
-          ) : products.length === 0 ? (
-            <div className="text-center text-slate-500 text-xs py-8">No matching products found.</div>
           ) : (
             <div className="divide-y divide-slate-800/40">
               {products.map((prod) => (

@@ -15,18 +15,27 @@ export const SettingsProvider = ({ children }) => {
     invoiceFooter: 'Thank you for your business!',
     theme: 'dark',
   });
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [loading, setLoading] = useState(true);
+
+  // Sync theme changes to localStorage and document class
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   const fetchSettings = async () => {
     try {
       const { data } = await API.get('/settings');
       if (data.success && data.data) {
         setSettings(data.data);
-        // Apply default theme classes to body tag
-        if (data.data.theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
+        // Fall back to server theme setting only if no local storage override is present
+        if (!localStorage.getItem('theme') && data.data.theme) {
+          setTheme(data.data.theme);
         }
       }
     } catch (error) {
@@ -52,10 +61,8 @@ export const SettingsProvider = ({ children }) => {
 
       if (data.success && data.data) {
         setSettings(data.data);
-        if (data.data.theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
+        if (formData.has('theme')) {
+          setTheme(data.data.theme);
         }
         return { success: true };
       }
@@ -85,7 +92,7 @@ export const SettingsProvider = ({ children }) => {
   };
 
   return (
-    <SettingsContext.Provider value={{ settings, setSettings, loading, fetchSettings, updateSettings, getCurrencySymbol }}>
+    <SettingsContext.Provider value={{ settings, setSettings, loading, fetchSettings, updateSettings, getCurrencySymbol, theme, setTheme }}>
       {children}
     </SettingsContext.Provider>
   );
