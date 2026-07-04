@@ -129,8 +129,12 @@ const Sidebar = () => {
 
       {/* User profile segment */}
       <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex flex-col gap-3">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-indigo-400">
+        <div
+          onClick={() => navigate('/profile')}
+          className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-800/40 rounded-xl cursor-pointer transition-colors"
+          title="View Profile Dashboard"
+        >
+          <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-indigo-400 shrink-0">
             {user?.name?.slice(0, 2).toUpperCase()}
           </div>
           <div className="overflow-hidden">

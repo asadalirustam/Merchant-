@@ -14,6 +14,7 @@ import POSBilling from './pages/POSBilling';
 import Products from './pages/Products';
 import InvoiceHistory from './pages/InvoiceHistory';
 import SalesReports from './pages/SalesReports';
+import Profile from './pages/Profile';
 
 // Root Route Redirect Handler
 const RootRedirect = () => {
@@ -62,6 +63,7 @@ function App() {
         <Route element={<ProtectedLayout allowedRoles={['CEO', 'Admin']} />}>
           <Route path="/dashboard" element={<CEODashboard />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/profile" element={<Profile />} />
         </Route>
 
         {/* Catch-all fallback redirections */}

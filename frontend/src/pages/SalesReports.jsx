@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import API from '../utils/api';
 import { SettingsContext } from '../context/SettingsContext';
 import { NotificationContext } from '../context/NotificationContext';
@@ -25,9 +26,11 @@ const SalesReports = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const location = useLocation();
+
   // Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(location.state?.startDate || '');
+  const [endDate, setEndDate] = useState(location.state?.endDate || '');
   const [selectedAdmin, setSelectedAdmin] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
 
@@ -61,8 +64,32 @@ const SalesReports = () => {
 
   useEffect(() => {
     fetchFiltersData();
-    fetchSalesData();
+    if (!location.state) {
+      fetchSalesData();
+    }
   }, []);
+
+  // Watch for location state transitions to auto-apply filters and refetch
+  useEffect(() => {
+    if (location.state) {
+      const sDate = location.state.startDate || '';
+      const eDate = location.state.endDate || '';
+      setStartDate(sDate);
+      setEndDate(eDate);
+      
+      // Auto-trigger fetch
+      setLoading(true);
+      const url = `/sales?startDate=${sDate}&endDate=${eDate}&admin=${selectedAdmin}&product=${selectedProduct}`;
+      API.get(url)
+        .then(({ data }) => {
+          if (data.success) {
+            setSales(data.data);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [location.state]);
 
   const handleFilterSubmit = (e) => {
     e.preventDefault();
