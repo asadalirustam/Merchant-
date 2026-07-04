@@ -41,7 +41,8 @@ export const registerCEO = async (req, res) => {
       refreshToken,
     }, 211);
   } catch (error) {
-    return sendError(res, 'Registration failed', error, 500);
+    console.error('CEO Bootstrap Error:', error);
+    return sendError(res, error.message || 'Registration failed', error, 500);
   }
 };
 

@@ -311,9 +311,7 @@ const CEODashboard = () => {
               <div>
                 <p className="text-slate-400 text-xs font-medium">Out of Stock</p>
                 <h4 className="text-lg font-bold text-slate-100 mt-0.5">
-                  {/* Since out of stock isn't compiled directly for Admin, calculate or fetch. CEO stats has cards.outOfStock as fallback. In this controller, totalProducts represents items. We can compute it: */}
-                  {/* Let's render totalProducts with 0 quantity from product list */}
-                  {productsList.filter(p => p.quantity === 0).length}
+                  {cards.outOfStockProducts || 0}
                 </h4>
               </div>
             </div>

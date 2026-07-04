@@ -42,10 +42,13 @@ export const getDashboardStats = async (req, res) => {
     const productsList = await Product.find({}, 'quantity price name');
     let availableStock = 0;
     let lowStockProducts = 0;
+    let outOfStockProducts = 0;
 
     productsList.forEach((prod) => {
       availableStock += prod.quantity;
-      if (prod.quantity <= 5 && prod.quantity > 0) {
+      if (prod.quantity === 0) {
+        outOfStockProducts += 1;
+      } else if (prod.quantity <= 5) {
         lowStockProducts += 1;
       }
     });
@@ -123,6 +126,7 @@ export const getDashboardStats = async (req, res) => {
         totalRevenue,
         availableStock,
         lowStockProducts,
+        outOfStockProducts,
       },
       charts: {
         dailySales: dailySalesData,
