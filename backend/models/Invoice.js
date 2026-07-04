@@ -1,10 +1,9 @@
 import mongoose from 'mongoose';
 
-const saleItemSchema = new mongoose.Schema({
+const invoiceItemSchema = new mongoose.Schema({
   product: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
-    required: true,
   },
   name: {
     type: String,
@@ -13,7 +12,6 @@ const saleItemSchema = new mongoose.Schema({
   quantity: {
     type: Number,
     required: true,
-    min: 1,
   },
   price: {
     type: Number,
@@ -21,43 +19,34 @@ const saleItemSchema = new mongoose.Schema({
   },
 });
 
-const saleSchema = new mongoose.Schema(
+const invoiceSchema = new mongoose.Schema(
   {
     invoiceNumber: {
       type: String,
       required: true,
       unique: true,
     },
-    items: [saleItemSchema],
-    subTotal: {
-      type: Number,
+    sale: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Sale',
       required: true,
     },
-    discount: {
-      type: Number,
-      default: 0, // Discount amount in currency
+    customerName: {
+      type: String,
+      default: 'Guest',
     },
-    tax: {
-      type: Number,
-      default: 0, // Tax amount in currency
+    cashierName: {
+      type: String,
+      required: true,
     },
+    items: [invoiceItemSchema],
     grandTotal: {
       type: Number,
       required: true,
     },
     paymentMethod: {
       type: String,
-      enum: ['Cash', 'Card', 'Online'],
       required: true,
-    },
-    cashier: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    customerName: {
-      type: String,
-      default: 'Guest',
     },
     date: {
       type: Date,
@@ -69,5 +58,5 @@ const saleSchema = new mongoose.Schema(
   }
 );
 
-const Sale = mongoose.model('Sale', saleSchema);
-export default Sale;
+const Invoice = mongoose.model('Invoice', invoiceSchema);
+export default Invoice;

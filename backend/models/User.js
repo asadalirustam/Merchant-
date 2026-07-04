@@ -28,16 +28,18 @@ const userSchema = new mongoose.Schema(
       enum: ['CEO', 'Admin'],
       default: 'Admin',
     },
-    permissions: {
-      type: [String],
-      default: [],
-    },
     status: {
       type: String,
-      enum: ['Active', 'Suspended'],
-      default: 'Active',
+      enum: ['Enabled', 'Disabled'],
+      default: 'Enabled',
     },
     lastLogin: {
+      type: Date,
+    },
+    resetCode: {
+      type: String,
+    },
+    resetCodeExpires: {
       type: Date,
     },
   },

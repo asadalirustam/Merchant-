@@ -7,7 +7,7 @@ import { emitNotification } from '../utils/socketHelper.js';
 
 // @desc    Get all products with query filters
 // @route   GET /api/products
-// @access  Private
+// @access  Private (CEO & Admin)
 export const getProducts = async (req, res) => {
   const { search, category, stockStatus, page = 1, limit = 100 } = req.query;
 
@@ -17,18 +17,18 @@ export const getProducts = async (req, res) => {
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { sku: { $regex: search, $options: 'i' } },
-        { barcode: { $regex: search, $options: 'i' } },
+        { productCode: { $regex: search, $options: 'i' } },
       ];
     }
 
     if (category) {
-      query.category = category;
+      query.category = { $regex: category, $options: 'i' };
     }
 
-    // Filter by stock alert status
+    // Filter by stock level
     if (stockStatus === 'low') {
-      query.$expr = { $and: [{ $lte: ['$quantity', '$minimumStock'] }, { $gt: ['$quantity', 0] }] };
+      // quantity <= 5 is standard low stock, let's make it 5
+      query.$expr = { $and: [{ $lte: ['$quantity', 5] }, { $gt: ['$quantity', 0] }] };
     } else if (stockStatus === 'out') {
       query.quantity = 0;
     }
@@ -36,7 +36,7 @@ export const getProducts = async (req, res) => {
     const skipIndex = (parseInt(page) - 1) * parseInt(limit);
     const total = await Product.countDocuments(query);
     const products = await Product.find(query)
-      .populate('category')
+      .populate('createdBy', 'name email role')
       .sort('-createdAt')
       .skip(skipIndex)
       .limit(parseInt(limit));
@@ -52,23 +52,21 @@ export const getProducts = async (req, res) => {
   }
 };
 
-// @desc    Get single product by ID or SKU or Barcode
-// @route   GET /api/products/:idOrSku
-// @access  Private
+// @desc    Get single product details
+// @route   GET /api/products/:idOrCode
+// @access  Private (CEO & Admin)
 export const getProductById = async (req, res) => {
-  const { idOrSku } = req.params;
+  const { idOrCode } = req.params;
 
   try {
     let product;
 
-    // Check if it's a valid MongoDB ObjectId format
-    if (idOrSku.match(/^[0-9a-fA-F]{24}$/)) {
-      product = await Product.findById(idOrSku).populate('category');
+    if (idOrCode.match(/^[0-9a-fA-F]{24}$/)) {
+      product = await Product.findById(idOrCode).populate('createdBy', 'name email role');
     } else {
-      // Find by SKU or Barcode (useful for POS scanning)
       product = await Product.findOne({
-        $or: [{ sku: idOrSku }, { barcode: idOrSku }],
-      }).populate('category');
+        $or: [{ productCode: idOrCode }, { qrCode: idOrCode }],
+      }).populate('createdBy', 'name email role');
     }
 
     if (!product) {
@@ -77,36 +75,36 @@ export const getProductById = async (req, res) => {
 
     return sendSuccess(res, 'Product retrieved successfully', product);
   } catch (error) {
-    return sendError(res, 'Failed to fetch product', error, 500);
+    return sendError(res, 'Failed to fetch product details', error, 500);
   }
 };
 
 // @desc    Create new product
 // @route   POST /api/products
-// @access  Private
+// @access  Private (Admin Only)
 export const createProduct = async (req, res) => {
+  // CEOs cannot directly edit products unless given permission (restricted to Admin role in route/controller)
+  if (req.user.role === 'CEO') {
+    return sendError(res, 'Access Denied: CEOs do not have permissions to write product data.', null, 403);
+  }
+
   const {
     name,
-    sku,
-    barcode,
+    productCode,
     category,
-    brand,
-    costPrice,
-    sellingPrice,
-    discount,
+    price,
     quantity,
-    minimumStock,
     description,
   } = req.body;
 
-  if (!name || !sku || !category || !costPrice || !sellingPrice) {
-    return sendError(res, 'Required fields: name, sku, category, costPrice, sellingPrice', null, 400);
+  if (!name || !productCode || !category || price === undefined) {
+    return sendError(res, 'Required fields: name, productCode, category, price', null, 400);
   }
 
   try {
-    const productExists = await Product.findOne({ sku });
+    const productExists = await Product.findOne({ productCode });
     if (productExists) {
-      return sendError(res, 'Product with this SKU already exists', null, 400);
+      return sendError(res, 'Product with this Product Code already exists', null, 400);
     }
 
     // Process image
@@ -115,38 +113,35 @@ export const createProduct = async (req, res) => {
       productImage = await uploadToCloudinary(req.file.path);
     }
 
-    // Auto-generate unique QR code from SKU
-    const qrCode = await generateQRCode(sku);
-
-    const product = await Product.create({
+    // Instantiate model to get its _id for the QR Code
+    const product = new Product({
       name,
-      sku,
-      barcode: barcode || sku,
-      qrCode,
+      productCode,
       category,
-      brand,
-      costPrice,
-      sellingPrice,
-      discount: discount || 0,
+      price,
       quantity: quantity || 0,
-      minimumStock: minimumStock || 5,
       productImage,
       description,
+      createdBy: req.user._id,
     });
 
-    // Activities and sockets
-    await logActivity(req.user._id, 'PRODUCT_ADD', `Added product: ${product.name} (SKU: ${product.sku})`, req);
-    emitNotification('PRODUCT_ADD', 'Product Added', `${product.name} was successfully created.`, { sku: product.sku });
+    // Auto-generate QR code representing product unique ID (_id)
+    const qrCode = await generateQRCode(product._id.toString());
+    product.qrCode = qrCode;
 
-    // Check low stock alert immediately
+    await product.save();
+
+    await logActivity(req.user._id, 'Product Added', `Admin added product: ${product.name} (Code: ${product.productCode})`, req);
+    emitNotification('PRODUCT_ADD', 'Product Added', `${product.name} was successfully created.`, { id: product._id });
+
+    // Check stock thresholds
     if (product.quantity === 0) {
-      emitNotification('OUT_OF_STOCK', 'Out of Stock Alert', `${product.name} is out of stock!`, { sku: product.sku });
-    } else if (product.quantity <= product.minimumStock) {
-      emitNotification('LOW_STOCK', 'Low Stock Alert', `${product.name} has low stock (${product.quantity} remaining).`, { sku: product.sku });
+      emitNotification('OUT_OF_STOCK', 'Out of Stock Warning', `${product.name} is out of stock.`, { id: product._id });
+    } else if (product.quantity <= 5) {
+      emitNotification('LOW_STOCK', 'Low Stock Warning', `${product.name} has low stock (${product.quantity} remaining).`, { id: product._id });
     }
 
-    const populatedProduct = await Product.findById(product._id).populate('category');
-    return sendSuccess(res, 'Product created successfully', populatedProduct, 201);
+    return sendSuccess(res, 'Product created successfully', product, 201);
   } catch (error) {
     return sendError(res, 'Failed to create product', error, 500);
   }
@@ -154,19 +149,18 @@ export const createProduct = async (req, res) => {
 
 // @desc    Update product
 // @route   PUT /api/products/:id
-// @access  Private
+// @access  Private (Admin Only)
 export const updateProduct = async (req, res) => {
+  if (req.user.role === 'CEO') {
+    return sendError(res, 'Access Denied: CEOs do not have permissions to edit product data.', null, 403);
+  }
+
   const {
     name,
-    sku,
-    barcode,
+    productCode,
     category,
-    brand,
-    costPrice,
-    sellingPrice,
-    discount,
+    price,
     quantity,
-    minimumStock,
     description,
   } = req.body;
 
@@ -176,124 +170,63 @@ export const updateProduct = async (req, res) => {
       return sendError(res, 'Product not found', null, 404);
     }
 
-    // Handle name, brand, description
     if (name) product.name = name;
-    if (brand !== undefined) product.brand = brand;
-    if (description !== undefined) product.description = description;
     if (category) product.category = category;
-    if (barcode) product.barcode = barcode;
+    if (description !== undefined) product.description = description;
 
-    // Handle prices and track change logs
     let priceChanged = false;
-    if (costPrice !== undefined) product.costPrice = costPrice;
-    if (sellingPrice !== undefined) {
-      if (Number(sellingPrice) !== product.sellingPrice) {
+    if (price !== undefined) {
+      if (Number(price) !== product.price) {
         priceChanged = true;
       }
-      product.sellingPrice = sellingPrice;
+      product.price = Number(price);
     }
-    if (discount !== undefined) product.discount = discount;
-    if (minimumStock !== undefined) product.minimumStock = minimumStock;
 
-    // Handle stock quantity directly
-    if (quantity !== undefined) product.quantity = quantity;
+    if (quantity !== undefined) {
+      product.quantity = Number(quantity);
+    }
 
-    // If SKU changes, regenerate QR code and check unique
-    if (sku && sku !== product.sku) {
-      const skuExists = await Product.findOne({ sku });
-      if (skuExists) {
-        return sendError(res, 'Another product with this SKU already exists', null, 400);
+    if (productCode && productCode !== product.productCode) {
+      const codeExists = await Product.findOne({ productCode });
+      if (codeExists) {
+        return sendError(res, 'Another product with this code already exists', null, 400);
       }
-      product.sku = sku;
-      product.qrCode = await generateQRCode(sku);
+      product.productCode = productCode;
     }
 
-    // Process file image updates
     if (req.file) {
       product.productImage = await uploadToCloudinary(req.file.path);
     }
 
     await product.save();
 
-    await logActivity(req.user._id, 'PRODUCT_UPDATE', `Updated product: ${product.name} (SKU: ${product.sku})`, req);
-    
+    await logActivity(req.user._id, 'Product Updated', `Admin updated product: ${product.name} (Code: ${product.productCode})`, req);
+
     if (priceChanged) {
-      await logActivity(req.user._id, 'PRICE_CHANGED', `Price updated for ${product.name} (SKU: ${product.sku}) to ${product.sellingPrice}`, req);
-      emitNotification('PRICE_UPDATED', 'Price Updated', `${product.name} price is now ${product.sellingPrice}.`, { sku: product.sku });
+      await logActivity(req.user._id, 'Price Changed', `Admin changed price of ${product.name} to ${product.price}`, req);
     }
 
-    // Check low stock status
+    // Check stock thresholds
     if (product.quantity === 0) {
-      emitNotification('OUT_OF_STOCK', 'Out of Stock Alert', `${product.name} is out of stock!`, { sku: product.sku });
-    } else if (product.quantity <= product.minimumStock) {
-      emitNotification('LOW_STOCK', 'Low Stock Alert', `${product.name} has low stock (${product.quantity} remaining).`, { sku: product.sku });
+      emitNotification('OUT_OF_STOCK', 'Out of Stock Warning', `${product.name} is out of stock.`, { id: product._id });
+    } else if (product.quantity <= 5) {
+      emitNotification('LOW_STOCK', 'Low Stock Warning', `${product.name} has low stock (${product.quantity} remaining).`, { id: product._id });
     }
 
-    const populatedProduct = await Product.findById(product._id).populate('category');
-    return sendSuccess(res, 'Product updated successfully', populatedProduct);
+    return sendSuccess(res, 'Product updated successfully', product);
   } catch (error) {
     return sendError(res, 'Failed to update product', error, 500);
   }
 };
 
-// @desc    Specific adjustments for price and quantity
-// @route   PATCH /api/products/:id/adjust
-// @access  Private
-export const adjustProduct = async (req, res) => {
-  const { sellingPrice, quantity, actionType } = req.body; // actionType: 'IN', 'OUT', 'SET'
-
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) {
-      return sendError(res, 'Product not found', null, 404);
-    }
-
-    let detail = '';
-
-    if (sellingPrice !== undefined && sellingPrice !== product.sellingPrice) {
-      const oldPrice = product.sellingPrice;
-      product.sellingPrice = sellingPrice;
-      detail += `Price updated from ${oldPrice} to ${sellingPrice}. `;
-      await logActivity(req.user._id, 'PRICE_CHANGED', `Price updated for ${product.name}: ${sellingPrice}`, req);
-      emitNotification('PRICE_UPDATED', 'Price Updated', `${product.name} price changed to ${sellingPrice}.`, { sku: product.sku });
-    }
-
-    if (quantity !== undefined) {
-      const oldQty = product.quantity;
-      if (actionType === 'IN') {
-        product.quantity += Number(quantity);
-        detail += `Stock In adjusted: +${quantity}. `;
-      } else if (actionType === 'OUT') {
-        product.quantity = Math.max(0, product.quantity - Number(quantity));
-        detail += `Stock Out adjusted: -${quantity}. `;
-      } else {
-        product.quantity = Number(quantity);
-        detail += `Stock level set to: ${quantity}. `;
-      }
-      
-      await logActivity(req.user._id, 'INVENTORY_ADJUST', `Stock change for ${product.name} (SKU: ${product.sku}) from ${oldQty} to ${product.quantity}. ${detail}`, req);
-    }
-
-    await product.save();
-
-    // Check inventory stock warning thresholds
-    if (product.quantity === 0) {
-      emitNotification('OUT_OF_STOCK', 'Out of Stock Alert', `${product.name} is out of stock!`, { sku: product.sku });
-    } else if (product.quantity <= product.minimumStock) {
-      emitNotification('LOW_STOCK', 'Low Stock Alert', `${product.name} has low stock (${product.quantity} remaining).`, { sku: product.sku });
-    }
-
-    const populatedProduct = await Product.findById(product._id).populate('category');
-    return sendSuccess(res, 'Product adjusted successfully', populatedProduct);
-  } catch (error) {
-    return sendError(res, 'Failed to adjust product', error, 500);
-  }
-};
-
 // @desc    Delete product
 // @route   DELETE /api/products/:id
-// @access  Private
+// @access  Private (Admin Only)
 export const deleteProduct = async (req, res) => {
+  if (req.user.role === 'CEO') {
+    return sendError(res, 'Access Denied: CEOs do not have permissions to delete product data.', null, 403);
+  }
+
   try {
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -302,11 +235,64 @@ export const deleteProduct = async (req, res) => {
 
     await Product.findByIdAndDelete(req.params.id);
 
-    await logActivity(req.user._id, 'PRODUCT_DELETE', `Deleted product: ${product.name} (SKU: ${product.sku})`, req);
-    emitNotification('PRODUCT_DELETED', 'Product Deleted', `${product.name} was removed from inventory.`, { sku: product.sku });
+    await logActivity(req.user._id, 'Product Deleted', `Admin deleted product: ${product.name} (Code: ${product.productCode})`, req);
+    emitNotification('PRODUCT_DELETED', 'Product Deleted', `${product.name} was removed from catalogs.`, { id: product._id });
 
     return sendSuccess(res, 'Product deleted successfully');
   } catch (error) {
     return sendError(res, 'Failed to delete product', error, 500);
+  }
+};
+
+// @desc    Adjust product stock level or price
+// @route   PATCH /api/products/:id/adjust
+// @access  Private (Admin Only)
+export const adjustProduct = async (req, res) => {
+  if (req.user.role === 'CEO') {
+    return sendError(res, 'Access Denied: CEOs do not have permissions to adjust product data.', null, 403);
+  }
+
+  const { quantity, price } = req.body;
+
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return sendError(res, 'Product not found', null, 404);
+    }
+
+    let activityDetails = [];
+
+    if (quantity !== undefined) {
+      const oldQty = product.quantity;
+      product.quantity = Number(quantity);
+      activityDetails.push(`stock adjusted from ${oldQty} to ${product.quantity}`);
+    }
+
+    if (price !== undefined) {
+      const oldPrice = product.price;
+      product.price = Number(price);
+      activityDetails.push(`price adjusted from ${oldPrice} to ${product.price}`);
+      await logActivity(req.user._id, 'Price Changed', `Admin adjusted price of ${product.name} to ${product.price}`, req);
+    }
+
+    await product.save();
+
+    await logActivity(
+      req.user._id,
+      'Product Updated',
+      `Admin adjusted product (${product.name}): ${activityDetails.join(', ')}`,
+      req
+    );
+
+    // Emit alerts if needed
+    if (product.quantity === 0) {
+      emitNotification('OUT_OF_STOCK', 'Out of Stock Warning', `${product.name} is out of stock.`, { id: product._id });
+    } else if (product.quantity <= 5) {
+      emitNotification('LOW_STOCK', 'Low Stock Warning', `${product.name} has low stock (${product.quantity} remaining).`, { id: product._id });
+    }
+
+    return sendSuccess(res, 'Product adjusted successfully', product);
+  } catch (error) {
+    return sendError(res, 'Failed to adjust product data', error, 500);
   }
 };

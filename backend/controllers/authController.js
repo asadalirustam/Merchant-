@@ -21,11 +21,10 @@ export const registerCEO = async (req, res) => {
       email,
       password,
       role: 'CEO',
-      status: 'Active',
-      permissions: ['ALL'],
+      status: 'Enabled',
     });
 
-    await logActivity(user._id, 'CEO_REGISTRATION', 'First CEO account registered during system setup', req);
+    await logActivity(user._id, 'Login', 'CEO registered & logged in during setup', req);
 
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user);
@@ -36,7 +35,6 @@ export const registerCEO = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        permissions: user.permissions,
         status: user.status,
       },
       accessToken,
@@ -60,11 +58,13 @@ export const login = async (req, res) => {
   try {
     const user = await User.findOne({ email }).select('+password');
     if (!user || !(await user.matchPassword(password))) {
+      await logActivity(null, 'Login Failed', `Failed login attempt for email: ${email}`, req);
       return sendError(res, 'Invalid credentials', null, 401);
     }
 
-    if (user.status === 'Suspended') {
-      return sendError(res, 'Your account is suspended. Please contact CEO.', null, 403);
+    if (user.status === 'Disabled') {
+      await logActivity(user._id, 'Login Failed', `Attempted login on disabled account: ${email}`, req);
+      return sendError(res, 'Your account is disabled. Please contact the CEO.', null, 403);
     }
 
     // Generate tokens
@@ -75,7 +75,7 @@ export const login = async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    await logActivity(user._id, 'LOGIN', 'User logged in successfully', req);
+    await logActivity(user._id, 'Login', 'User logged in successfully', req);
 
     return sendSuccess(res, 'Logged in successfully', {
       user: {
@@ -83,7 +83,6 @@ export const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        permissions: user.permissions,
         status: user.status,
       },
       accessToken,
@@ -106,7 +105,7 @@ export const logout = async (req, res) => {
     }
 
     if (req.user) {
-      await logActivity(req.user._id, 'LOGOUT', 'User logged out', req);
+      await logActivity(req.user._id, 'Logout', 'User logged out', req);
     }
 
     return sendSuccess(res, 'Logged out successfully');
@@ -138,11 +137,11 @@ export const refresh = async (req, res) => {
     }
 
     const user = tokenDoc.user;
-    if (!user || user.status === 'Suspended') {
-      return sendError(res, 'User suspended or deleted', null, 403);
+    if (!user || user.status === 'Disabled') {
+      return sendError(res, 'User disabled or deleted', null, 403);
     }
 
-    // Rotate token: delete old, generate new access and refresh
+    // Rotate token
     await RefreshToken.findByIdAndDelete(tokenDoc._id);
 
     const newAccessToken = generateAccessToken(user);
@@ -154,71 +153,6 @@ export const refresh = async (req, res) => {
     });
   } catch (error) {
     return sendError(res, 'Refresh failed', error, 500);
-  }
-};
-
-// @desc    Forgot Password request
-// @route   POST /api/auth/forgot-password
-// @access  Public
-export const forgotPassword = async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return sendError(res, 'No user with that email exists', null, 404);
-    }
-
-    // Generate dynamic mock reset token for security (10-min validity)
-    const resetToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code
-    
-    // In production this would be emailed. For demo, we output to server log & return in API payload.
-    console.log(`[PASSWORD RESET CODE FOR ${email}]: ${resetToken}`);
-
-    // Store temporary code on user object
-    user.permissions.push(`RESET:${resetToken}`);
-    // Mark setting timer if needed, but since user.permissions is a simple array, let's keep it simple.
-    await user.save();
-
-    return sendSuccess(res, 'Reset code generated. Check server console logs.', {
-      email,
-      // Returning code to facilitate testing/demo easily.
-      resetCode: resetToken,
-    });
-  } catch (error) {
-    return sendError(res, 'Forgot password request failed', error, 500);
-  }
-};
-
-// @desc    Reset Password using code
-// @route   POST /api/auth/reset-password
-// @access  Public
-export const resetPassword = async (req, res) => {
-  const { email, resetCode, newPassword } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return sendError(res, 'User not found', null, 404);
-    }
-
-    const permissionTag = `RESET:${resetCode}`;
-    const codeIndex = user.permissions.indexOf(permissionTag);
-
-    if (codeIndex === -1) {
-      return sendError(res, 'Invalid reset code or email', null, 400);
-    }
-
-    // Reset password & clear code
-    user.password = newPassword;
-    user.permissions.splice(codeIndex, 1);
-    await user.save();
-
-    await logActivity(user._id, 'PASSWORD_RESET', 'User password reset via recovery code', req);
-
-    return sendSuccess(res, 'Password reset successfully');
-  } catch (error) {
-    return sendError(res, 'Reset password failed', error, 500);
   }
 };
 
@@ -237,10 +171,80 @@ export const changePassword = async (req, res) => {
     user.password = newPassword;
     await user.save();
 
-    await logActivity(user._id, 'PASSWORD_CHANGE', 'User updated password settings', req);
+    await logActivity(user._id, 'Password Changed', 'User updated password settings', req);
 
     return sendSuccess(res, 'Password changed successfully');
   } catch (error) {
     return sendError(res, 'Change password failed', error, 500);
+  }
+};
+
+// @desc    Forgot password - generate reset code
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return sendError(res, 'Please provide email', null, 400);
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return sendError(res, 'User with that email does not exist', null, 404);
+    }
+
+    // Generate random 6-digit code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetCode = resetCode;
+    user.resetCodeExpires = Date.now() + 15 * 60 * 1000; // 15 mins expiry
+    await user.save();
+
+    console.log(`\n======================================================`);
+    console.log(`[PASSWORD RESET CODE] for $\{email\}: $\{resetCode\}`);
+    console.log(`======================================================\n`);
+
+    return sendSuccess(res, 'Password reset code generated successfully', { resetCode });
+  } catch (error) {
+    return sendError(res, 'Forgot password failed', error, 500);
+  }
+};
+
+// @desc    Reset password using reset code
+// @route   POST /api/auth/reset-password
+// @access  Public
+export const resetPassword = async (req, res) => {
+  const { email, resetCode, newPassword } = req.body;
+
+  if (!email || !resetCode || !newPassword) {
+    return sendError(res, 'Please provide email, resetCode and newPassword', null, 400);
+  }
+
+  if (newPassword.length < 6) {
+    return sendError(res, 'Password must be at least 6 characters', null, 400);
+  }
+
+  try {
+    const user = await User.findOne({
+      email,
+      resetCode,
+      resetCodeExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return sendError(res, 'Invalid or expired password reset code', null, 400);
+    }
+
+    user.password = newPassword;
+    user.resetCode = undefined;
+    user.resetCodeExpires = undefined;
+    await user.save();
+
+    await logActivity(user._id, 'Password Reset', `User reset password successfully via email reset code`, req);
+
+    return sendSuccess(res, 'Password reset successfully. You can now log in.');
+  } catch (error) {
+    return sendError(res, 'Reset password failed', error, 500);
   }
 };

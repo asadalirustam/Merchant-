@@ -3,9 +3,9 @@ import RefreshToken from '../models/RefreshToken.js';
 
 export const generateAccessToken = (user) => {
   return jwt.sign(
-    { id: user._id, role: user.role, permissions: user.permissions },
+    { id: user._id, role: user.role },
     process.env.JWT_SECRET || 'merchant_secret_access_key_9988776655',
-    { expiresIn: '15m' }
+    { expiresIn: '1d' } // 1 day validity for robust POS work session stability
   );
 };
 
@@ -19,7 +19,6 @@ export const generateRefreshToken = async (user) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  // Save the refresh token in database
   await RefreshToken.create({
     token,
     user: user._id,

@@ -9,12 +9,8 @@ import {
   Settings,
   ShoppingCart,
   Package,
-  Tags,
-  Truck,
-  UserCheck,
-  ClipboardList,
   Receipt,
-  DollarSign,
+  FileDown,
   LogOut,
   Store,
 } from 'lucide-react';
@@ -30,7 +26,7 @@ const Sidebar = () => {
   };
 
   const menuItems = [
-    // CEO ONLY
+    // CEO NAVIGATION PATHS
     {
       path: '/dashboard',
       label: 'CEO Dashboard',
@@ -41,6 +37,18 @@ const Sidebar = () => {
       path: '/admins',
       label: 'Admin Management',
       icon: Users,
+      roles: ['CEO'],
+    },
+    {
+      path: '/reports',
+      label: 'Sales Reports',
+      icon: FileDown,
+      roles: ['CEO'],
+    },
+    {
+      path: '/invoices',
+      label: 'Invoice History',
+      icon: Receipt,
       roles: ['CEO'],
     },
     {
@@ -55,54 +63,24 @@ const Sidebar = () => {
       icon: Settings,
       roles: ['CEO'],
     },
-    // BOTH CEO AND ADMIN
+    // ADMIN NAVIGATION PATHS
+    {
+      path: '/dashboard',
+      label: 'Admin Dashboard',
+      icon: LayoutDashboard,
+      roles: ['Admin'],
+    },
     {
       path: '/pos',
       label: 'POS Billing',
       icon: ShoppingCart,
-      roles: ['CEO', 'Admin'],
+      roles: ['Admin'],
     },
     {
       path: '/products',
-      label: 'Products',
+      label: 'Products Catalog',
       icon: Package,
-      roles: ['CEO', 'Admin'],
-    },
-    {
-      path: '/categories',
-      label: 'Categories',
-      icon: Tags,
-      roles: ['CEO', 'Admin'],
-    },
-    {
-      path: '/suppliers',
-      label: 'Suppliers',
-      icon: Truck,
-      roles: ['CEO', 'Admin'],
-    },
-    {
-      path: '/customers',
-      label: 'Customers',
-      icon: UserCheck,
-      roles: ['CEO', 'Admin'],
-    },
-    {
-      path: '/inventory',
-      label: 'Inventory Logs',
-      icon: ClipboardList,
-      roles: ['CEO', 'Admin'],
-    },
-    {
-      path: '/purchases',
-      label: 'Purchases',
-      icon: Receipt,
-      roles: ['CEO', 'Admin'],
-    },
-    {
-      path: '/expenses',
-      label: 'Expenses',
-      icon: DollarSign,
-      roles: ['CEO', 'Admin'],
+      roles: ['CEO', 'Admin'], // Both can access (Admin has CRUD, CEO has read-only overview)
     },
   ];
 
@@ -127,17 +105,18 @@ const Sidebar = () => {
 
       {/* Nav Menu */}
       <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
-        {filteredMenuItems.map((item) => {
+        {filteredMenuItems.map((item, idx) => {
           const Icon = item.icon;
+          // React Router issue with multiple identical paths, differentiate matching
           return (
             <NavLink
-              key={item.path}
+              key={`${item.path}-${idx}`}
               to={item.path}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 text-sm rounded-xl font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                    ? 'bg-indigo-650 text-white shadow-lg shadow-indigo-600/30'
+                    : 'text-slate-450 hover:bg-slate-800/60 hover:text-slate-200'
                 }`
               }
             >
@@ -156,7 +135,7 @@ const Sidebar = () => {
           </div>
           <div className="overflow-hidden">
             <h4 className="text-xs font-semibold text-slate-200 truncate">{user?.name}</h4>
-            <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+            <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
           </div>
         </div>
         <button

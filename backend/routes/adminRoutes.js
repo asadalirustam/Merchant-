@@ -6,6 +6,7 @@ import {
   toggleAdminStatus,
   resetAdminPassword,
   deleteAdmin,
+  getAdminActivity,
 } from '../controllers/adminController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { authorizeRoles } from '../middleware/roleMiddleware.js';
@@ -26,5 +27,6 @@ router.route('/:id')
 
 router.patch('/:id/toggle-status', toggleAdminStatus);
 router.put('/:id/reset-password', resetAdminPassword);
+router.get('/:id/activity', getAdminActivity);
 
 export default router;
