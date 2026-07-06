@@ -1,9 +1,10 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import API from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { SettingsContext } from '../context/SettingsContext';
 import { NotificationContext } from '../context/NotificationContext';
+import { Html5Qrcode } from 'html5-qrcode';
 import {
   Package,
   Search,
@@ -16,6 +17,9 @@ import {
   Printer,
   X,
   Upload,
+  ScanLine,
+  Camera,
+  CheckCircle2,
 } from 'lucide-react';
 
 const Products = () => {
@@ -51,9 +55,17 @@ const Products = () => {
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add');
 
   const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // QR Scanner state
+  const [scannerStatus, setScannerStatus] = useState('idle'); // idle | scanning | found | error
+  const [scannedProduct, setScannedProduct] = useState(null);
+  const [scanError, setScanError] = useState('');
+  const html5QrCodeRef = useRef(null);
+  const scannerContainerId = 'qr-scanner-container';
 
   // Form Fields
   const [name, setName] = useState('');
@@ -206,6 +218,121 @@ const Products = () => {
     setIsQrModalOpen(true);
   };
 
+  // ─── QR SCANNER LOGIC ─────────────────────────────────────────────────────
+  const stopScanner = useCallback(async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        const state = html5QrCodeRef.current.getState();
+        // State 2 = SCANNING, State 3 = PAUSED
+        if (state === 2 || state === 3) {
+          await html5QrCodeRef.current.stop();
+        }
+      } catch (_) {
+        // ignore errors during stop
+      }
+      html5QrCodeRef.current = null;
+    }
+  }, []);
+
+  const startScanner = useCallback(async () => {
+    setScannerStatus('scanning');
+    setScanError('');
+    setScannedProduct(null);
+
+    // Small delay to let the DOM mount the container
+    await new Promise((r) => setTimeout(r, 300));
+
+    try {
+      const qrCode = new Html5Qrcode(scannerContainerId);
+      html5QrCodeRef.current = qrCode;
+
+      await qrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 240, height: 240 } },
+        async (decodedText) => {
+          // QR detected — stop scanner immediately
+          await stopScanner();
+          setScannerStatus('found');
+
+          // Try to look up product by scanned value (could be product _id or productCode)
+          try {
+            const { data } = await API.get(`/products/info/${encodeURIComponent(decodedText)}`);
+            if (data.success && data.data) {
+              setScannedProduct(data.data);
+            } else {
+              // Product not found — pre-fill the add form with scanned code
+              setScannedProduct(null);
+              openAddModalWithCode(decodedText);
+            }
+          } catch {
+            // Product not found — pre-fill add form
+            setScannedProduct(null);
+            openAddModalWithCode(decodedText);
+          }
+        },
+        () => {} // ignore frame errors
+      );
+    } catch (err) {
+      setScannerStatus('error');
+      setScanError(
+        err?.message?.includes('Permission')
+          ? 'Camera permission denied. Please allow camera access and try again.'
+          : 'Unable to start camera. Make sure your device has a camera and the browser has permission.'
+      );
+      html5QrCodeRef.current = null;
+    }
+  }, [stopScanner]);
+
+  const openScannerModal = () => {
+    if (isCEO) return;
+    setIsScannerOpen(true);
+    setScannerStatus('idle');
+    setScanError('');
+    setScannedProduct(null);
+  };
+
+  const closeScannerModal = async () => {
+    await stopScanner();
+    setIsScannerOpen(false);
+    setScannerStatus('idle');
+    setScannedProduct(null);
+  };
+
+  const openAddModalWithCode = (code) => {
+    setModalMode('add');
+    setSelectedProduct(null);
+    setName('');
+    setProductCode(code);
+    setCategory('');
+    setPrice('');
+    setCostPrice('');
+    setQuantity('');
+    setDescription('');
+    setImageFile(null);
+    setImagePreview('');
+    setIsCustomCategory(false);
+    setIsScannerOpen(false);
+    setIsModalOpen(true);
+  };
+
+  const handleScannerFoundEdit = (prod) => {
+    setIsScannerOpen(false);
+    openEditModal(prod);
+  };
+
+  const handleScannerFoundAdd = (prod) => {
+    // Product already exists — just close scanner, product is already in list
+    setIsScannerOpen(false);
+    addToast('Info', `Product "${prod.name}" already exists in catalog`, 'info');
+  };
+
+  const handleScanAgain = async () => {
+    setScannerStatus('scanning');
+    setScannedProduct(null);
+    setScanError('');
+    await startScanner();
+  };
+
   const handlePrintQr = () => {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -245,13 +372,22 @@ const Products = () => {
           </p>
         </div>
         {!isCEO && (
-          <button
-            onClick={openAddModal}
-            className="px-4 py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-lg"
-          >
-            <Plus className="w-4 h-4" />
-            Add Product
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openScannerModal}
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-indigo-500 text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-lg"
+            >
+              <ScanLine className="w-4 h-4 text-indigo-400" />
+              Scan QR
+            </button>
+            <button
+              onClick={openAddModal}
+              className="px-4 py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              Add Product
+            </button>
+          </div>
         )}
       </div>
 
@@ -625,6 +761,151 @@ const Products = () => {
           </div>
         </div>
       )}
+
+      {/* QR SCANNER MODAL */}
+      {isScannerOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex justify-between items-center px-5 py-4 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <ScanLine className="w-4 h-4 text-indigo-400" />
+                <h3 className="font-bold text-sm text-slate-200">Scan Product QR Code</h3>
+              </div>
+              <button onClick={closeScannerModal} className="text-slate-400 hover:text-slate-200 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Idle state */}
+              {scannerStatus === 'idle' && (
+                <div className="flex flex-col items-center gap-4 py-4">
+                  <div className="w-20 h-20 rounded-2xl bg-indigo-950/40 border border-indigo-800/40 flex items-center justify-center">
+                    <Camera className="w-9 h-9 text-indigo-400" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-slate-200">Point camera at a QR Code</p>
+                    <p className="text-xs text-slate-500 mt-1">The product will be added or pre-filled automatically</p>
+                  </div>
+                  <button
+                    onClick={startScanner}
+                    className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Start Camera
+                  </button>
+                </div>
+              )}
+
+              {/* Scanning state — camera feed */}
+              {scannerStatus === 'scanning' && (
+                <div className="space-y-3">
+                  <div className="relative rounded-xl overflow-hidden border border-indigo-700/40 bg-black">
+                    {/* Scanner container — html5-qrcode mounts here */}
+                    <div id={scannerContainerId} className="w-full" style={{ minHeight: '280px' }} />
+                    {/* Animated corner brackets overlay */}
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                      <div className="relative w-48 h-48">
+                        <span className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-indigo-400 rounded-tl-lg" />
+                        <span className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-indigo-400 rounded-tr-lg" />
+                        <span className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-indigo-400 rounded-bl-lg" />
+                        <span className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-indigo-400 rounded-br-lg" />
+                        {/* Scanning line animation */}
+                        <span
+                          className="absolute left-1 right-1 h-0.5 bg-indigo-400/80 rounded-full"
+                          style={{ animation: 'scanline 2s ease-in-out infinite', top: '50%' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-center text-xs text-slate-400 animate-pulse">Scanning... hold QR code steady</p>
+                  <button
+                    onClick={closeScannerModal}
+                    className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {/* Found state — existing product */}
+              {scannerStatus === 'found' && scannedProduct && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <p className="text-xs text-emerald-300 font-semibold">Product found in catalog!</p>
+                  </div>
+
+                  <div className="flex gap-3 bg-slate-950 rounded-xl p-3 border border-slate-850">
+                    <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0 overflow-hidden">
+                      {scannedProduct.productImage ? (
+                        <img src={`http://localhost:5000${scannedProduct.productImage}`} alt={scannedProduct.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Package className="w-6 h-6 text-slate-600" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-200 truncate">{scannedProduct.name}</p>
+                      <p className="text-[10px] font-mono text-slate-500 mt-0.5">Code: {scannedProduct.productCode}</p>
+                      <div className="flex gap-3 mt-1">
+                        <span className="text-[10px] text-indigo-400 font-semibold">{scannedProduct.quantity} units</span>
+                        <span className="text-[10px] text-slate-400">{scannedProduct.category}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={handleScanAgain}
+                      className="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      Scan Again
+                    </button>
+                    <button
+                      onClick={() => handleScannerFoundEdit(scannedProduct)}
+                      className="py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      Edit Product
+                    </button>
+                  </div>
+                  <button
+                    onClick={closeScannerModal}
+                    className="w-full py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+
+              {/* Error state */}
+              {scannerStatus === 'error' && (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-2 bg-rose-950/30 border border-rose-800/40 rounded-xl p-3">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-rose-300">{scanError}</p>
+                  </div>
+                  <button
+                    onClick={() => setScannerStatus('idle')}
+                    className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scan line animation */}
+      <style>{`
+        @keyframes scanline {
+          0%   { transform: translateY(-80px); opacity: 0.6; }
+          50%  { transform: translateY(80px);  opacity: 1;   }
+          100% { transform: translateY(-80px); opacity: 0.6; }
+        }
+      `}</style>
     </div>
   );
 };
