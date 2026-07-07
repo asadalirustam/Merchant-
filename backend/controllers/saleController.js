@@ -165,7 +165,9 @@ export const getInvoices = async (req, res) => {
 // @access  Private (CEO & Admin)
 export const getInvoiceDetails = async (req, res) => {
   try {
-    const invoice = await Invoice.findOne({ invoiceNumber: req.params.invoiceNumber }).populate('items.product');
+    const invoice = await Invoice.findOne({ invoiceNumber: req.params.invoiceNumber })
+      .populate('items.product')
+      .populate('sale');
     if (!invoice) {
       return sendError(res, 'Invoice not found', null, 404);
     }
@@ -174,6 +176,191 @@ export const getInvoiceDetails = async (req, res) => {
     return sendError(res, 'Failed to fetch invoice details', error, 500);
   }
 };
+
+// @desc    Update Invoice details (Edit Invoice)
+// @route   PUT /api/invoices/:invoiceNumber
+// @access  Private (CEO & Admin)
+export const updateInvoice = async (req, res) => {
+  const { invoiceNumber } = req.params;
+  const {
+    customerName,
+    items,
+    subTotal,
+    discount,
+    tax,
+    grandTotal,
+    paymentMethod,
+  } = req.body;
+
+  if (!items || items.length === 0) {
+    return sendError(res, 'Invoice cart cannot be empty', null, 400);
+  }
+
+  try {
+    // 1. Find the invoice and corresponding sale
+    const invoice = await Invoice.findOne({ invoiceNumber });
+    if (!invoice) {
+      return sendError(res, 'Invoice not found', null, 404);
+    }
+
+    const sale = await Sale.findOne({ invoiceNumber });
+    if (!sale) {
+      return sendError(res, 'Sale log not found for this invoice', null, 404);
+    }
+
+    // 2. Validate and adjust product stocks
+    const productIds = new Set();
+    sale.items.forEach(item => productIds.add(item.product.toString()));
+    items.forEach(item => productIds.add(item.product.toString()));
+
+    const products = await Product.find({ _id: { $in: Array.from(productIds) } });
+    const productMap = {};
+    products.forEach(p => {
+      productMap[p._id.toString()] = p;
+    });
+
+    const oldQtyMap = {};
+    sale.items.forEach(item => {
+      oldQtyMap[item.product.toString()] = item.quantity;
+    });
+
+    const newQtyMap = {};
+    items.forEach(item => {
+      newQtyMap[item.product.toString()] = item.quantity;
+    });
+
+    const stockUpdates = [];
+    const enrichedSaleItems = [];
+    const enrichedInvoiceItems = [];
+
+    for (const prodId of productIds) {
+      const product = productMap[prodId];
+      const oldQty = oldQtyMap[prodId] || 0;
+      const newQty = newQtyMap[prodId] || 0;
+
+      if (newQty > 0) {
+        if (!product) {
+          return sendError(res, `Product not found in inventory`, null, 404);
+        }
+
+        const changeNeeded = newQty - oldQty;
+        if (changeNeeded > 0 && product.quantity < changeNeeded) {
+          return sendError(
+            res,
+            `Insufficient stock for "${product.name}". Only ${product.quantity} additional units available.`,
+            null,
+            400
+          );
+        }
+
+        stockUpdates.push({
+          product,
+          quantityChange: changeNeeded,
+        });
+
+        // For Sale log, we need costPrice snapshot
+        const oldSaleItem = sale.items.find(item => item.product.toString() === prodId);
+        const costPrice = oldQty > 0 ? (oldSaleItem?.costPrice || product.costPrice || 0) : (product.costPrice || 0);
+
+        enrichedSaleItems.push({
+          product: prodId,
+          name: product.name,
+          quantity: newQty,
+          price: items.find(item => item.product.toString() === prodId).price,
+          costPrice,
+        });
+
+        // For Invoice log, we map product, name, quantity, price
+        enrichedInvoiceItems.push({
+          product: prodId,
+          name: product.name,
+          quantity: newQty,
+          price: items.find(item => item.product.toString() === prodId).price,
+        });
+      } else {
+        if (product) {
+          stockUpdates.push({
+            product,
+            quantityChange: -oldQty,
+          });
+        }
+      }
+    }
+
+    // 3. Apply stock updates
+    for (const update of stockUpdates) {
+      const { product, quantityChange } = update;
+      product.quantity -= quantityChange;
+      await product.save();
+
+      // Emit notifications for stock changes
+      if (product.quantity === 0) {
+        emitNotification('OUT_OF_STOCK', 'Out of Stock Warning', `${product.name} is now completely out of stock!`, { id: product._id });
+        await logActivity(null, 'Out of Stock', `${product.name} stock level reached 0`, req);
+      } else if (product.quantity <= 5) {
+        emitNotification('LOW_STOCK', 'Low Stock Warning', `${product.name} has low stock remaining: ${product.quantity} units.`, { id: product._id });
+        await logActivity(null, 'Low Stock', `${product.name} stock level is low: ${product.quantity}`, req);
+      }
+
+      await logActivity(
+        req.user._id,
+        'Product Updated',
+        `Invoice edit updated stock of ${product.name} by ${-quantityChange}. Remaining: ${product.quantity}`,
+        req
+      );
+    }
+
+    // 4. Record edit history entry
+    const previousGrandTotal = invoice.grandTotal;
+    const historyEntry = {
+      editedBy: req.user.name,
+      editedAt: new Date(),
+      previousGrandTotal,
+      newGrandTotal: grandTotal,
+      summary: `Items updated: ${sale.items.length} -> ${items.length}`,
+    };
+
+    // 5. Update Sale details
+    sale.items = enrichedSaleItems;
+    sale.subTotal = subTotal;
+    sale.discount = discount || 0;
+    sale.tax = tax || 0;
+    sale.grandTotal = grandTotal;
+    sale.paymentMethod = paymentMethod;
+    sale.customerName = customerName || 'Guest';
+    await sale.save();
+
+    // 6. Update Invoice details
+    invoice.items = enrichedInvoiceItems;
+    invoice.grandTotal = grandTotal;
+    invoice.paymentMethod = paymentMethod;
+    invoice.customerName = customerName || 'Guest';
+    invoice.cashierName = req.user.name; // update cashier to the one who edited
+    
+    if (!invoice.editHistory) {
+      invoice.editHistory = [];
+    }
+    invoice.editHistory.push(historyEntry);
+    await invoice.save();
+
+    // 7. Log Activity and emit notification
+    await logActivity(
+      req.user._id,
+      'Sale Edited',
+      `Edited invoice transaction. Invoice: ${invoiceNumber}, New Grand Total: ${grandTotal}`,
+      req
+    );
+
+    emitNotification('SALE_COMPLETED', 'Sale Updated', `Invoice updated: ${invoiceNumber} (${paymentMethod})`, { invoiceNumber });
+
+    // Populate items and sale for the response
+    const updatedInvoice = await Invoice.findById(invoice._id).populate('items.product').populate('sale');
+    return sendSuccess(res, 'Invoice updated successfully', updatedInvoice);
+  } catch (error) {
+    return sendError(res, 'Failed to update invoice details', error, 500);
+  }
+};
+
 
 // @desc    Get raw sales log list (useful for CEO sales reports filtering)
 // @route   GET /api/sales

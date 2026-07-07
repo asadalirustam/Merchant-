@@ -49,7 +49,6 @@ function App() {
         <Route element={<ProtectedLayout allowedRoles={['CEO']} />}>
           <Route path="/admins" element={<AdminManagement />} />
           <Route path="/reports" element={<SalesReports />} />
-          <Route path="/invoices" element={<InvoiceHistory />} />
           <Route path="/logs" element={<ActivityLogs />} />
           <Route path="/settings" element={<ShopSettings />} />
         </Route>
@@ -64,6 +63,7 @@ function App() {
           <Route path="/dashboard" element={<CEODashboard />} />
           <Route path="/products" element={<Products />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/invoices" element={<InvoiceHistory />} />
         </Route>
 
         {/* Catch-all fallback redirections */}

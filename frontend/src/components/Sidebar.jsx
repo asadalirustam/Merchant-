@@ -49,7 +49,7 @@ const Sidebar = () => {
       path: '/invoices',
       label: 'Invoice History',
       icon: Receipt,
-      roles: ['CEO'],
+      roles: ['CEO', 'Admin'],
     },
     {
       path: '/logs',
