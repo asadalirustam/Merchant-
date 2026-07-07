@@ -11,7 +11,6 @@ import {
   ShoppingBag,
   Printer,
   X,
-  FileDown,
   Trash2,
   Plus,
   Minus,
@@ -235,6 +234,7 @@ const InvoiceHistory = () => {
         setInvoices(data.data);
       }
     } catch (error) {
+      console.error(error);
       addToast('Error', 'Failed to retrieve invoice logs', 'error');
     } finally {
       setLoading(false);
@@ -243,6 +243,7 @@ const InvoiceHistory = () => {
 
   useEffect(() => {
     fetchInvoices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchDate]);
 
   const handleFilterSubmit = (e) => {

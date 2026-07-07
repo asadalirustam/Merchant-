@@ -9,12 +9,9 @@ import {
   Trash2,
   Plus,
   Minus,
-  CreditCard,
   QrCode,
-  DollarSign,
   User,
   Percent,
-  CheckCircle,
   Printer,
   X,
   Store,
@@ -31,7 +28,7 @@ const POSBilling = () => {
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState('Guest');
   const [discountPercent, setDiscountPercent] = useState(0); // Discount in percentage
-  const [taxPercent, setTaxPercent] = useState(settings.taxPercentage || 0);
+  const [taxPercent] = useState(settings.taxPercentage || 0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
 
   // Checkout modal
