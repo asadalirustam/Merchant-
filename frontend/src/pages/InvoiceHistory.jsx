@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import QRCode from 'qrcode';
 import API from '../utils/api';
 import { SettingsContext } from '../context/SettingsContext';
 import { NotificationContext } from '../context/NotificationContext';
@@ -30,6 +31,22 @@ const InvoiceHistory = () => {
   // Selected Invoice Modal
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [invoiceQrDataUrl, setInvoiceQrDataUrl] = useState('');
+
+  // Generate QR whenever a new invoice is selected
+  useEffect(() => {
+    if (selectedInvoice?.invoiceNumber) {
+      QRCode.toDataURL(selectedInvoice.invoiceNumber, {
+        width: 160,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+      })
+        .then((url) => setInvoiceQrDataUrl(url))
+        .catch(() => setInvoiceQrDataUrl(''));
+    } else {
+      setInvoiceQrDataUrl('');
+    }
+  }, [selectedInvoice]);
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -140,6 +157,14 @@ const InvoiceHistory = () => {
               <td style="text-align: right;">${invoice.customerName}</td>
             </tr>
           </table>
+          <div class="divider"></div>
+          ${invoiceQrDataUrl ? `
+          <div class="text-center" style="margin-top: 14px;">
+            <img src="${invoiceQrDataUrl}" alt="Invoice QR" style="width:110px;height:110px;margin:0 auto;display:block;" />
+            <div style="font-size:9px;color:#666;margin-top:4px;">Scan to verify invoice</div>
+            <div style="font-size:8px;color:#999;margin-top:2px;font-family:monospace;">${invoice.invoiceNumber}</div>
+          </div>
+          <div class="divider"></div>` : ''}
         </body>
       </html>
     `);
@@ -349,6 +374,16 @@ const InvoiceHistory = () => {
               </div>
 
               <div className="border-t border-dashed border-slate-800 pt-4">
+                {/* QR Code */}
+                {invoiceQrDataUrl && (
+                  <div className="flex flex-col items-center gap-2 pb-4 border-b border-dashed border-slate-800 mb-4">
+                    <p className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold">Scan to Verify Invoice</p>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-inner">
+                      <img src={invoiceQrDataUrl} alt="Invoice QR" className="w-24 h-24" />
+                    </div>
+                    <p className="text-[8px] font-mono text-slate-600">{selectedInvoice.invoiceNumber}</p>
+                  </div>
+                )}
                 <button
                   onClick={() => handlePrint(selectedInvoice)}
                   className="w-full py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all"

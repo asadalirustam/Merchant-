@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useContext } from 'react';
+import QRCode from 'qrcode';
 import API from '../utils/api';
 import { SettingsContext } from '../context/SettingsContext';
 import { NotificationContext } from '../context/NotificationContext';
@@ -37,8 +38,24 @@ const POSBilling = () => {
   const [checkoutResult, setCheckoutResult] = useState(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [invoiceQrDataUrl, setInvoiceQrDataUrl] = useState('');
 
   const searchInputRef = useRef(null);
+
+  // Generate QR code data URL whenever a new checkout result is available
+  useEffect(() => {
+    if (checkoutResult?.invoiceNumber) {
+      QRCode.toDataURL(checkoutResult.invoiceNumber, {
+        width: 160,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+      })
+        .then((url) => setInvoiceQrDataUrl(url))
+        .catch(() => setInvoiceQrDataUrl(''));
+    } else {
+      setInvoiceQrDataUrl('');
+    }
+  }, [checkoutResult]);
 
   const fetchAllProducts = async () => {
     try {
@@ -265,7 +282,15 @@ const POSBilling = () => {
           </table>
           
           <div class="divider"></div>
-          <div class="text-center" style="margin-top: 15px; font-weight: bold;">
+          ${invoiceQrDataUrl ? `
+          <div class="text-center" style="margin-top: 14px;">
+            <img src="${invoiceQrDataUrl}" alt="Invoice QR" style="width:110px;height:110px;margin:0 auto;display:block;" />
+            <div style="font-size:9px;color:#666;margin-top:4px;">Scan to verify invoice</div>
+            <div style="font-size:8px;color:#999;margin-top:2px;font-family:monospace;">${checkoutResult?.invoiceNumber}</div>
+          </div>
+          ` : ''}
+          <div class="divider"></div>
+          <div class="text-center" style="margin-top: 10px; font-weight: bold;">
             Thank you for shopping with us!
           </div>
         </body>
@@ -555,6 +580,17 @@ const POSBilling = () => {
                   <span>{checkoutResult.customerName}</span>
                 </div>
               </div>
+
+              {/* Invoice QR Code */}
+              {invoiceQrDataUrl && (
+                <div className="border-t border-dashed border-slate-800 pt-4 flex flex-col items-center gap-2">
+                  <p className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold">Scan to Verify Invoice</p>
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-inner">
+                    <img src={invoiceQrDataUrl} alt="Invoice QR" className="w-24 h-24" />
+                  </div>
+                  <p className="text-[8px] font-mono text-slate-600">{checkoutResult.invoiceNumber}</p>
+                </div>
+              )}
 
               {/* Printing actions */}
               <div className="border-t border-dashed border-slate-800 pt-4 flex gap-3">
