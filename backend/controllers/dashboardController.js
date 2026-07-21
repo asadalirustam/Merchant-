@@ -114,9 +114,9 @@ export const getDashboardStats = async (req, res) => {
 
     allSales.forEach((sale) => {
       sale.items.forEach((item) => {
-        const prodId = item.product.toString();
+        const prodId = item.product ? item.product.toString() : (item.name || 'Unknown');
         productSalesMap[prodId] = (productSalesMap[prodId] || 0) + item.price * item.quantity;
-        productNameMap[prodId] = item.name;
+        productNameMap[prodId] = item.name || 'Unknown';
       });
     });
 

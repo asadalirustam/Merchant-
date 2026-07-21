@@ -13,6 +13,7 @@ import {
   TrendingDown,
   Printer,
   Activity,
+  Download,
 } from 'lucide-react';
 
 const SalesReports = () => {
