@@ -1,74 +1,22 @@
 import Sale from '../models/Sale.js';
+import Invoice from '../models/Invoice.js';
 import Product from '../models/Product.js';
-import Customer from '../models/Customer.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { logActivity } from '../utils/activityLogger.js';
 import { emitNotification } from '../utils/socketHelper.js';
 
-// @desc    Get all sales logs
-// @route   GET /api/sales
-// @access  Private
-export const getSales = async (req, res) => {
-  const { customer, startDate, endDate } = req.query;
-
-  try {
-    const query = {};
-
-    if (customer) {
-      query.customer = customer;
-    }
-
-    if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
-    }
-
-    const sales = await Sale.find(query)
-      .populate('customer')
-      .populate('cashier', 'name email')
-      .sort('-date');
-
-    return sendSuccess(res, 'Sales logs retrieved successfully', sales);
-  } catch (error) {
-    return sendError(res, 'Failed to fetch sales logs', error, 500);
-  }
-};
-
-// @desc    Get single invoice details
-// @route   GET /api/sales/:invoiceNumber
-// @access  Private
-export const getSaleByInvoice = async (req, res) => {
-  try {
-    const sale = await Sale.findOne({ invoiceNumber: req.params.invoiceNumber })
-      .populate('customer')
-      .populate('cashier', 'name email')
-      .populate('items.product');
-
-    if (!sale) {
-      return sendError(res, 'Invoice not found', null, 404);
-    }
-
-    return sendSuccess(res, 'Invoice retrieved successfully', sale);
-  } catch (error) {
-    return sendError(res, 'Failed to fetch invoice details', error, 500);
-  }
-};
-
 // @desc    Perform Checkout (POS Sale transaction)
 // @route   POST /api/sales
-// @access  Private
+// @access  Private (Admin Only)
 export const createSale = async (req, res) => {
   const {
-    customer: customerId,
+    customerName,
     items,
     subTotal,
-    discountAmount,
-    taxAmount,
+    discount,
+    tax,
     grandTotal,
     paymentMethod,
-    notes,
   } = req.body;
 
   if (!items || items.length === 0) {
@@ -85,7 +33,7 @@ export const createSale = async (req, res) => {
     for (const item of items) {
       const product = await Product.findById(item.product);
       if (!product) {
-        return sendError(res, `Product ${item.name} not found in inventory`, null, 404);
+        return sendError(res, `Product "${item.name}" not found in inventory`, null, 404);
       }
       if (product.quantity < item.quantity) {
         return sendError(
@@ -105,107 +53,150 @@ export const createSale = async (req, res) => {
 
       // Emit notifications for stock changes
       if (product.quantity === 0) {
-        emitNotification('OUT_OF_STOCK', 'Out of Stock Warning', `${product.name} is now completely out of stock!`, { sku: product.sku });
-      } else if (product.quantity <= product.minimumStock) {
-        emitNotification('LOW_STOCK', 'Low Stock Warning', `${product.name} has low stock remaining: ${product.quantity} units.`, { sku: product.sku });
+        emitNotification('OUT_OF_STOCK', 'Out of Stock Warning', `${product.name} is now completely out of stock!`, { id: product._id });
+        await logActivity(null, 'Out of Stock', `${product.name} stock level reached 0`, req);
+      } else if (product.quantity <= 5) {
+        emitNotification('LOW_STOCK', 'Low Stock Warning', `${product.name} has low stock remaining: ${product.quantity} units.`, { id: product._id });
+        await logActivity(null, 'Low Stock', `${product.name} stock level is low: ${product.quantity}`, req);
       }
 
       await logActivity(
         req.user._id,
-        'INVENTORY_ADJUST',
-        `Stock-Out via Sale (${invoiceNumber}): -${item.quantity} for product ${product.name} (Remaining: ${product.quantity})`,
+        'Product Updated',
+        `POS checkout reduced stock of ${product.name} by ${item.quantity}. Remaining: ${product.quantity}`,
         req
       );
     }
 
-    // Accumulate customer total spending if customer selected
-    if (customerId) {
-      const customer = await Customer.findById(customerId);
-      if (customer) {
-        customer.totalSpending += Number(grandTotal);
-        await customer.save();
-      }
-    }
-
-    // Save final sale invoice
+    // Save final sale log
     const sale = await Sale.create({
       invoiceNumber,
-      customer: customerId || null,
-      cashier: req.user._id,
       items,
       subTotal,
-      discountAmount: discountAmount || 0,
-      taxAmount: taxAmount || 0,
+      discount: discount || 0,
+      tax: tax || 0,
       grandTotal,
       paymentMethod,
-      notes,
+      cashier: req.user._id,
+      customerName: customerName || 'Guest',
+    });
+
+    // Save corresponding Invoice log in the Invoices collection
+    const invoice = await Invoice.create({
+      invoiceNumber,
+      sale: sale._id,
+      customerName: customerName || 'Guest',
+      cashierName: req.user.name,
+      items: items.map(item => ({
+        product: item.product,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      grandTotal,
+      paymentMethod,
+      date: new Date(),
     });
 
     await logActivity(
       req.user._id,
-      'INVOICE_CREATE',
-      `Completed sale transaction. Invoice: ${invoiceNumber}, Total: ${grandTotal}`,
+      'Sale Completed',
+      `Completed sale transaction. Invoice: ${invoiceNumber}, Grand Total: ${grandTotal}`,
       req
     );
 
-    // Emit live sales broadcast event
-    emitNotification('SALE_COMPLETED', 'Sale Completed', `New transaction checkout: ${invoiceNumber} for Total: ${grandTotal}`, { invoiceNumber });
+    emitNotification('SALE_COMPLETED', 'Sale Completed', `New invoice generated: ${invoiceNumber} (${paymentMethod})`, { invoiceNumber });
 
-    const populatedSale = await Sale.findById(sale._id)
-      .populate('customer')
-      .populate('cashier', 'name email');
-
-    return sendSuccess(res, 'Sale completed successfully', populatedSale, 201);
+    return sendSuccess(res, 'Sale completed successfully', invoice, 201);
   } catch (error) {
     return sendError(res, 'POS Checkout failed', error, 500);
   }
 };
 
-// @desc    Delete/Refund Sale transaction
-// @route   DELETE /api/sales/:id
-// @access  Private
-export const deleteSale = async (req, res) => {
+// @desc    Get Invoices (Invoice History with Search and Filters)
+// @route   GET /api/invoices
+// @access  Private (CEO & Admin)
+export const getInvoices = async (req, res) => {
+  const { search, product, date, customerName } = req.query;
+
   try {
-    const sale = await Sale.findById(req.params.id);
-    if (!sale) {
-      return sendError(res, 'Sale record not found', null, 404);
+    const query = {};
+
+    if (search) {
+      query.invoiceNumber = { $regex: search, $options: 'i' };
     }
 
-    // Restock items in inventory
-    for (const item of sale.items) {
-      const product = await Product.findById(item.product);
-      if (product) {
-        product.quantity += Number(item.quantity);
-        await product.save();
-        await logActivity(
-          req.user._id,
-          'INVENTORY_ADJUST',
-          `Stock-In via Sale Return/Refund (${sale.invoiceNumber}): +${item.quantity} for product ${product.name}`,
-          req
-        );
-      }
+    if (customerName) {
+      query.customerName = { $regex: customerName, $options: 'i' };
     }
 
-    // Deduct spending amount from customer profile
-    if (sale.customer) {
-      const customer = await Customer.findById(sale.customer);
-      if (customer) {
-        customer.totalSpending = Math.max(0, customer.totalSpending - sale.grandTotal);
-        await customer.save();
-      }
+    if (product) {
+      query['items.name'] = { $regex: product, $options: 'i' };
     }
 
-    await Sale.findByIdAndDelete(req.params.id);
+    if (date) {
+      const targetDate = new Date(date);
+      const nextDay = new Date(targetDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      
+      query.date = {
+        $gte: targetDate,
+        $lt: nextDay,
+      };
+    }
 
-    await logActivity(
-      req.user._id,
-      'SALE_DELETE',
-      `Cancelled and refunded transaction Invoice: ${sale.invoiceNumber}`,
-      req
-    );
-
-    return sendSuccess(res, 'Sale record deleted and stock refunded');
+    const invoices = await Invoice.find(query).sort('-date');
+    return sendSuccess(res, 'Invoices retrieved successfully', invoices);
   } catch (error) {
-    return sendError(res, 'Failed to refund sale', error, 500);
+    return sendError(res, 'Failed to fetch invoices history', error, 500);
+  }
+};
+
+// @desc    Get single invoice details by Invoice Number
+// @route   GET /api/invoices/:invoiceNumber
+// @access  Private (CEO & Admin)
+export const getInvoiceDetails = async (req, res) => {
+  try {
+    const invoice = await Invoice.findOne({ invoiceNumber: req.params.invoiceNumber }).populate('items.product');
+    if (!invoice) {
+      return sendError(res, 'Invoice not found', null, 404);
+    }
+    return sendSuccess(res, 'Invoice details retrieved successfully', invoice);
+  } catch (error) {
+    return sendError(res, 'Failed to fetch invoice details', error, 500);
+  }
+};
+
+// @desc    Get raw sales log list (useful for CEO sales reports filtering)
+// @route   GET /api/sales
+// @access  Private (CEO & Admin)
+export const getSalesList = async (req, res) => {
+  const { startDate, endDate, admin, product } = req.query;
+
+  try {
+    const query = {};
+
+    if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    if (admin) {
+      query.cashier = admin;
+    }
+
+    if (product) {
+      query['items.product'] = product;
+    }
+
+    const sales = await Sale.find(query)
+      .populate('cashier', 'name email role')
+      .sort('-date');
+
+    return sendSuccess(res, 'Sales logs retrieved successfully', sales);
+  } catch (error) {
+    return sendError(res, 'Failed to fetch sales logs', error, 500);
   }
 };

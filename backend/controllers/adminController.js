@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import ActivityLog from '../models/ActivityLog.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { logActivity } from '../utils/activityLogger.js';
 
@@ -6,7 +7,7 @@ import { logActivity } from '../utils/activityLogger.js';
 // @route   POST /api/admins
 // @access  Private (CEO Only)
 export const createAdmin = async (req, res) => {
-  const { name, email, password, permissions } = req.body;
+  const { name, email, password } = req.body;
 
   try {
     const adminExists = await User.findOne({ email });
@@ -19,29 +20,27 @@ export const createAdmin = async (req, res) => {
       email,
       password,
       role: 'Admin',
-      status: 'Active',
-      permissions: permissions || [],
+      status: 'Enabled',
     });
 
     await logActivity(
       req.user._id,
-      'ADMIN_CREATE',
-      `Admin created: ${newAdmin.name} (${newAdmin.email})`,
+      'Admin Created',
+      `CEO created admin: ${newAdmin.name} (${newAdmin.email})`,
       req
     );
 
-    return sendSuccess(res, 'Admin created successfully', {
+    return sendSuccess(res, 'Admin profile created successfully', {
       admin: {
         id: newAdmin._id,
         name: newAdmin.name,
         email: newAdmin.email,
         role: newAdmin.role,
         status: newAdmin.status,
-        permissions: newAdmin.permissions,
       },
     }, 201);
   } catch (error) {
-    return sendError(res, 'Failed to create Admin', error, 500);
+    return sendError(res, 'Failed to create Admin account', error, 500);
   }
 };
 
@@ -50,19 +49,18 @@ export const createAdmin = async (req, res) => {
 // @access  Private (CEO Only)
 export const getAdmins = async (req, res) => {
   try {
-    // Only get Admins, exclude CEO accounts
     const admins = await User.find({ role: 'Admin' }).sort('-createdAt');
     return sendSuccess(res, 'Admins retrieved successfully', admins);
   } catch (error) {
-    return sendError(res, 'Failed to fetch Admins', error, 500);
+    return sendError(res, 'Failed to fetch Admins list', error, 500);
   }
 };
 
-// @desc    Update Admin profile/permissions
+// @desc    Update Admin profile
 // @route   PUT /api/admins/:id
 // @access  Private (CEO Only)
 export const updateAdmin = async (req, res) => {
-  const { name, permissions } = req.body;
+  const { name } = req.body;
 
   try {
     const admin = await User.findById(req.params.id);
@@ -71,57 +69,55 @@ export const updateAdmin = async (req, res) => {
     }
 
     if (name) admin.name = name;
-    if (permissions) admin.permissions = permissions;
-
     await admin.save();
 
     await logActivity(
       req.user._id,
-      'ADMIN_UPDATE',
-      `Admin updated: ${admin.name} permissions: [${admin.permissions.join(', ')}]`,
+      'Admin Updated',
+      `CEO updated admin name to: ${admin.name}`,
       req
     );
 
-    return sendSuccess(res, 'Admin updated successfully', admin);
+    return sendSuccess(res, 'Admin profile updated successfully', admin);
   } catch (error) {
-    return sendError(res, 'Failed to update Admin', error, 500);
+    return sendError(res, 'Failed to update Admin details', error, 500);
   }
 };
 
-// @desc    Toggle Admin Status (Suspend/Activate)
+// @desc    Toggle Admin Status (Enable/Disable)
 // @route   PATCH /api/admins/:id/toggle-status
 // @access  Private (CEO Only)
 export const toggleAdminStatus = async (req, res) => {
   try {
     const admin = await User.findById(req.params.id);
     if (!admin || admin.role !== 'Admin') {
-      return sendError(res, 'Admin not found', null, 404);
+      return sendError(res, 'Admin profile not found', null, 404);
     }
 
-    admin.status = admin.status === 'Active' ? 'Suspended' : 'Active';
+    admin.status = admin.status === 'Enabled' ? 'Disabled' : 'Enabled';
     await admin.save();
 
     await logActivity(
       req.user._id,
-      admin.status === 'Active' ? 'ADMIN_ACTIVATE' : 'ADMIN_SUSPEND',
-      `Admin status toggled to ${admin.status}: ${admin.name}`,
+      admin.status === 'Enabled' ? 'Admin Enabled' : 'Admin Disabled',
+      `CEO toggled status of admin (${admin.name}) to: ${admin.status}`,
       req
     );
 
-    return sendSuccess(res, `Admin ${admin.status === 'Active' ? 'activated' : 'suspended'} successfully`, admin);
+    return sendSuccess(res, `Admin account is now ${admin.status}`, admin);
   } catch (error) {
-    return sendError(res, 'Failed to toggle Admin status', error, 500);
+    return sendError(res, 'Failed to toggle status', error, 500);
   }
 };
 
-// @desc    Reset Admin Password by CEO
+// @desc    Reset Admin Password directly
 // @route   PUT /api/admins/:id/reset-password
 // @access  Private (CEO Only)
 export const resetAdminPassword = async (req, res) => {
   const { newPassword } = req.body;
 
   if (!newPassword || newPassword.length < 6) {
-    return sendError(res, 'Password must be at least 6 characters long', null, 400);
+    return sendError(res, 'Password must be at least 6 characters', null, 400);
   }
 
   try {
@@ -135,14 +131,26 @@ export const resetAdminPassword = async (req, res) => {
 
     await logActivity(
       req.user._id,
-      'ADMIN_PASSWORD_RESET',
+      'Password Changed',
       `CEO reset password for admin: ${admin.name}`,
       req
     );
 
-    return sendSuccess(res, 'Admin password reset successfully');
+    return sendSuccess(res, 'Admin password updated successfully');
   } catch (error) {
-    return sendError(res, 'Failed to reset Admin password', error, 500);
+    return sendError(res, 'Failed to reset Admin credentials', error, 500);
+  }
+};
+
+// @desc    Get specific Admin activity history logs
+// @route   GET /api/admins/:id/activity
+// @access  Private (CEO Only)
+export const getAdminActivity = async (req, res) => {
+  try {
+    const logs = await ActivityLog.find({ user: req.params.id }).sort('-timestamp');
+    return sendSuccess(res, 'Admin activity logs fetched successfully', logs);
+  } catch (error) {
+    return sendError(res, 'Failed to retrieve admin logs history', error, 500);
   }
 };
 
@@ -160,8 +168,8 @@ export const deleteAdmin = async (req, res) => {
 
     await logActivity(
       req.user._id,
-      'ADMIN_DELETE',
-      `Admin account deleted: ${admin.name} (${admin.email})`,
+      'Admin Deleted',
+      `CEO deleted admin profile: ${admin.name} (${admin.email})`,
       req
     );
 

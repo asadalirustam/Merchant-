@@ -1,26 +1,26 @@
 import express from 'express';
 import {
-  getSales,
-  getSaleByInvoice,
   createSale,
-  deleteSale,
+  getInvoices,
+  getInvoiceDetails,
+  getSalesList,
 } from '../controllers/saleController.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { authorizeRoles } from '../middleware/roleMiddleware.js';
 
 const router = express.Router();
 
 router.use(protect);
-router.use(authorizeRoles('CEO', 'Admin'));
 
-router.route('/')
-  .get(getSales)
+// POS Checkout & Sales Logs
+router.route('/sales')
+  .get(getSalesList)
   .post(createSale);
 
-router.route('/:invoiceNumber')
-  .get(getSaleByInvoice);
+// Invoices history query APIs
+router.route('/invoices')
+  .get(getInvoices);
 
-router.route('/:id')
-  .delete(deleteSale);
+router.route('/invoices/:invoiceNumber')
+  .get(getInvoiceDetails);
 
 export default router;

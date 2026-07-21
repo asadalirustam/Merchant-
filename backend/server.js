@@ -13,12 +13,7 @@ import { initIO } from './utils/socketHelper.js';
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import productRoutes from './routes/productRoutes.js';
-import categoryRoutes from './routes/categoryRoutes.js';
-import supplierRoutes from './routes/supplierRoutes.js';
-import customerRoutes from './routes/customerRoutes.js';
-import purchaseRoutes from './routes/purchaseRoutes.js';
 import saleRoutes from './routes/saleRoutes.js';
-import expenseRoutes from './routes/expenseRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import activityLogRoutes from './routes/activityLogRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
@@ -36,7 +31,7 @@ const server = http.createServer(app);
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 initIO(server, frontendUrl);
 
-// Security Headers (Helmet configuration with CSP adjustments for local media access)
+// Security Headers
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -59,7 +54,7 @@ app.use(express.urlencoded({ extended: true }));
 // Rate Limiter
 app.use('/api', apiLimiter);
 
-// Serve local static file directories (fallback for product images and logos)
+// Serve local static directories
 const __dirname = path.resolve();
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -67,19 +62,14 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/suppliers', supplierRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/purchases', purchaseRoutes);
-app.use('/api/sales', saleRoutes);
-app.use('/api/expenses', expenseRoutes);
+app.use('/api', saleRoutes); // Mounts /api/sales and /api/invoices
 app.use('/api/settings', settingsRoutes);
 app.use('/api/activity-logs', activityLogRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // Root Endpoint
 app.get('/', (req, res) => {
-  res.send('Enterprise Merchant ERP + POS System API is running...');
+  res.send('Merchant Management System API is running...');
 });
 
 // Route fallbacks & Global Exception handling

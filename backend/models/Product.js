@@ -7,60 +7,41 @@ const productSchema = new mongoose.Schema(
       required: [true, 'Please add a product name'],
       trim: true,
     },
-    sku: {
+    productCode: {
       type: String,
-      required: [true, 'Please add an SKU'],
+      required: [true, 'Please add a product code'],
       unique: true,
       trim: true,
     },
-    barcode: {
-      type: String,
-      trim: true,
-    },
     qrCode: {
-      type: String, // Base64 image data URI or link
+      type: String, // Base64 data URI representing product _id
     },
     category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
-      required: [true, 'Please select a category'],
-    },
-    brand: {
       type: String,
+      required: [true, 'Please add a category'],
       trim: true,
     },
-    costPrice: {
+    price: {
       type: Number,
-      required: [true, 'Please add cost price'],
-      min: [0, 'Cost price must be positive'],
-    },
-    sellingPrice: {
-      type: Number,
-      required: [true, 'Please add selling price'],
-      min: [0, 'Selling price must be positive'],
-    },
-    discount: {
-      type: Number,
-      default: 0,
-      min: [0, 'Discount cannot be negative'],
-      max: [100, 'Discount cannot exceed 100%'],
+      required: [true, 'Please add a selling price'],
+      min: [0, 'Price must be positive'],
     },
     quantity: {
       type: Number,
       default: 0,
       min: [0, 'Quantity cannot be negative'],
     },
-    minimumStock: {
-      type: Number,
-      default: 5,
-      min: [0, 'Minimum stock cannot be negative'],
-    },
-    productImage: {
-      type: String, // Cloudinary URL or local relative path
-      default: '',
-    },
     description: {
       type: String,
+    },
+    productImage: {
+      type: String, // Base64 or Cloudinary URL or local path
+      default: '',
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
   },
   {

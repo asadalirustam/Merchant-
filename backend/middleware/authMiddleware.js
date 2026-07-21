@@ -26,8 +26,8 @@ export const protect = async (req, res, next) => {
         return sendError(res, 'Not authorized, user not found', null, 401);
       }
 
-      if (req.user.status === 'Suspended') {
-        return sendError(res, 'Your account has been suspended. Please contact the CEO.', null, 403);
+      if (req.user.status === 'Disabled') {
+        return sendError(res, 'Your account has been disabled. Please contact the CEO.', null, 403);
       }
 
       next();

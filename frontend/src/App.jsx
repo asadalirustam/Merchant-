@@ -12,12 +12,8 @@ import ActivityLogs from './pages/ActivityLogs';
 import ShopSettings from './pages/ShopSettings';
 import POSBilling from './pages/POSBilling';
 import Products from './pages/Products';
-import Categories from './pages/Categories';
-import Suppliers from './pages/Suppliers';
-import Customers from './pages/Customers';
-import InventoryLogs from './pages/InventoryLogs';
-import Purchases from './pages/Purchases';
-import Expenses from './pages/Expenses';
+import InvoiceHistory from './pages/InvoiceHistory';
+import SalesReports from './pages/SalesReports';
 
 // Root Route Redirect Handler
 const RootRedirect = () => {
@@ -35,11 +31,7 @@ const RootRedirect = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role === 'CEO') {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <Navigate to="/pos" replace />;
+  return <Navigate to="/dashboard" replace />;
 };
 
 function App() {
@@ -54,22 +46,22 @@ function App() {
 
         {/* CEO-Only Protected Routes */}
         <Route element={<ProtectedLayout allowedRoles={['CEO']} />}>
-          <Route path="/dashboard" element={<CEODashboard />} />
           <Route path="/admins" element={<AdminManagement />} />
+          <Route path="/reports" element={<SalesReports />} />
+          <Route path="/invoices" element={<InvoiceHistory />} />
           <Route path="/logs" element={<ActivityLogs />} />
           <Route path="/settings" element={<ShopSettings />} />
         </Route>
 
+        {/* Admin-Only Protected Routes */}
+        <Route element={<ProtectedLayout allowedRoles={['Admin']} />}>
+          <Route path="/pos" element={<POSBilling />} />
+        </Route>
+
         {/* Shared CEO and Admin Protected Routes */}
         <Route element={<ProtectedLayout allowedRoles={['CEO', 'Admin']} />}>
-          <Route path="/pos" element={<POSBilling />} />
+          <Route path="/dashboard" element={<CEODashboard />} />
           <Route path="/products" element={<Products />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/suppliers" element={<Suppliers />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/inventory" element={<InventoryLogs />} />
-          <Route path="/purchases" element={<Purchases />} />
-          <Route path="/expenses" element={<Expenses />} />
         </Route>
 
         {/* Catch-all fallback redirections */}
