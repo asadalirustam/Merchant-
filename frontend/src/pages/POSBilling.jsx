@@ -93,7 +93,6 @@ const POSBilling = () => {
     );
     setProducts(filtered);
   };
-
   const addToCart = (product) => {
     if (product.quantity <= 0) {
       addToast('Out of Stock', `${product.name} is out of stock.`, 'error');
@@ -588,7 +587,6 @@ const POSBilling = () => {
                   <p className="text-[8px] font-mono text-slate-600">{checkoutResult.invoiceNumber}</p>
                 </div>
               )}
-
               {/* Printing actions */}
               <div className="border-t border-dashed border-slate-800 pt-4 flex gap-3">
                 <button

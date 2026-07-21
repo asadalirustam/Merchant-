@@ -49,6 +49,7 @@ function App() {
         <Route element={<ProtectedLayout allowedRoles={['CEO']} />}>
           <Route path="/admins" element={<AdminManagement />} />
           <Route path="/reports" element={<SalesReports />} />
+
           <Route path="/logs" element={<ActivityLogs />} />
           <Route path="/settings" element={<ShopSettings />} />
         </Route>

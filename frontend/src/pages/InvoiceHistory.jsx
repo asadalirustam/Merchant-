@@ -498,7 +498,6 @@ const InvoiceHistory = () => {
             >
               <X className="w-5 h-5" />
             </button>
-
             {isEditing ? (
               <div className="space-y-4 font-sans text-slate-300">
                 <div className="pb-3 border-b border-slate-800">

@@ -76,34 +76,30 @@ export const createSale = async (req, res) => {
       );
     }
 
-    // Save final sale log with costPrice snapshots
+    // Save final sale log
     const sale = await Sale.create({
       invoiceNumber,
+      cashier: req.user._id,
+      customerName: customerName || 'Guest',
       items: enrichedItems,
       subTotal,
       discount: discount || 0,
       tax: tax || 0,
       grandTotal,
       paymentMethod,
-      cashier: req.user._id,
-      customerName: customerName || 'Guest',
+      date: new Date(),
     });
 
-    // Save corresponding Invoice log in the Invoices collection
+    // Save invoice document
     const invoice = await Invoice.create({
       invoiceNumber,
       sale: sale._id,
       customerName: customerName || 'Guest',
       cashierName: req.user.name,
-      items: items.map(item => ({
-        product: item.product,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      })),
+      items: enrichedItems,
       grandTotal,
       paymentMethod,
-      date: new Date(),
+      date: sale.date,
     });
 
     await logActivity(
@@ -121,11 +117,48 @@ export const createSale = async (req, res) => {
   }
 };
 
-// @desc    Get Invoices (Invoice History with Search and Filters)
+// @desc    Get Sales list (with date/admin/product filters)
+// @route   GET /api/sales
+// @access  Private
+export const getSalesList = async (req, res) => {
+  const { startDate, endDate, admin, product } = req.query;
+
+  try {
+    const query = {};
+
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.date.$lte = end;
+      }
+    }
+
+    if (admin) {
+      query.cashier = admin;
+    }
+
+    if (product) {
+      query['items.product'] = product;
+    }
+
+    const sales = await Sale.find(query)
+      .populate('cashier', 'name email role')
+      .sort('-date');
+
+    return sendSuccess(res, 'Sales records fetched successfully', sales);
+  } catch (error) {
+    return sendError(res, 'Failed to fetch sales records', error, 500);
+  }
+};
+
+// @desc    Get Invoices list
 // @route   GET /api/invoices
-// @access  Private (CEO & Admin)
+// @access  Private
 export const getInvoices = async (req, res) => {
-  const { search, product, date, customerName } = req.query;
+  const { search, product, customerName, date } = req.query;
 
   try {
     const query = {};
@@ -143,267 +176,178 @@ export const getInvoices = async (req, res) => {
     }
 
     if (date) {
-      const targetDate = new Date(date);
-      const nextDay = new Date(targetDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      
-      query.date = {
-        $gte: targetDate,
-        $lt: nextDay,
-      };
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      const nextD = new Date(d);
+      nextD.setDate(nextD.getDate() + 1);
+      query.date = { $gte: d, $lt: nextD };
     }
 
     const invoices = await Invoice.find(query).sort('-date');
     return sendSuccess(res, 'Invoices retrieved successfully', invoices);
   } catch (error) {
-    return sendError(res, 'Failed to fetch invoices history', error, 500);
+    return sendError(res, 'Failed to fetch invoices', error, 500);
   }
 };
 
-// @desc    Get single invoice details by Invoice Number
+// @desc    Get single invoice details by invoiceNumber
 // @route   GET /api/invoices/:invoiceNumber
-// @access  Private (CEO & Admin)
+// @access  Private
 export const getInvoiceDetails = async (req, res) => {
   try {
-    const invoice = await Invoice.findOne({ invoiceNumber: req.params.invoiceNumber })
-      .populate('items.product')
-      .populate('sale');
+    const invoice = await Invoice.findOne({ invoiceNumber: req.params.invoiceNumber }).populate('sale');
     if (!invoice) {
       return sendError(res, 'Invoice not found', null, 404);
     }
-    return sendSuccess(res, 'Invoice details retrieved successfully', invoice);
+    return sendSuccess(res, 'Invoice details retrieved', invoice);
   } catch (error) {
     return sendError(res, 'Failed to fetch invoice details', error, 500);
   }
 };
 
-// @desc    Update Invoice details (Edit Invoice)
+// @desc    Update invoice (Admin/CEO edit)
 // @route   PUT /api/invoices/:invoiceNumber
-// @access  Private (CEO & Admin)
+// @access  Private
 export const updateInvoice = async (req, res) => {
-  const { invoiceNumber } = req.params;
-  const {
-    customerName,
-    items,
-    subTotal,
-    discount,
-    tax,
-    grandTotal,
-    paymentMethod,
-  } = req.body;
-
-  if (!items || items.length === 0) {
-    return sendError(res, 'Invoice cart cannot be empty', null, 400);
-  }
+  const { customerName, paymentMethod, items, subTotal, discount, tax, grandTotal } = req.body;
 
   try {
-    // 1. Find the invoice and corresponding sale
-    const invoice = await Invoice.findOne({ invoiceNumber });
+    const invoice = await Invoice.findOne({ invoiceNumber: req.params.invoiceNumber });
     if (!invoice) {
       return sendError(res, 'Invoice not found', null, 404);
     }
 
-    const sale = await Sale.findOne({ invoiceNumber });
-    if (!sale) {
-      return sendError(res, 'Sale log not found for this invoice', null, 404);
-    }
+    const sale = await Sale.findOne({ invoiceNumber: req.params.invoiceNumber });
 
-    // 2. Validate and adjust product stocks
-    const productIds = new Set();
-    sale.items.forEach(item => productIds.add(item.product.toString()));
-    items.forEach(item => productIds.add(item.product.toString()));
+    // Handle stock quantity differentials between old items and new items
+    if (items && items.length > 0) {
+      const oldItemMap = {};
+      (invoice.items || []).forEach((i) => {
+        const prodId = i.product?._id ? i.product._id.toString() : i.product.toString();
+        oldItemMap[prodId] = i.quantity;
+      });
 
-    const products = await Product.find({ _id: { $in: Array.from(productIds) } });
-    const productMap = {};
-    products.forEach(p => {
-      productMap[p._id.toString()] = p;
-    });
+      const newItemMap = {};
+      items.forEach((i) => {
+        const prodId = i.product?._id ? i.product._id.toString() : i.product.toString();
+        newItemMap[prodId] = i.quantity;
+      });
 
-    const oldQtyMap = {};
-    sale.items.forEach(item => {
-      oldQtyMap[item.product.toString()] = item.quantity;
-    });
+      // Stock adjustment logic
+      const allProductIds = new Set([...Object.keys(oldItemMap), ...Object.keys(newItemMap)]);
+      for (const prodId of allProductIds) {
+        const oldQty = oldItemMap[prodId] || 0;
+        const newQty = newItemMap[prodId] || 0;
+        const diff = newQty - oldQty; // positive means extra units sold; negative means units returned
 
-    const newQtyMap = {};
-    items.forEach(item => {
-      newQtyMap[item.product.toString()] = item.quantity;
-    });
-
-    const stockUpdates = [];
-    const enrichedSaleItems = [];
-    const enrichedInvoiceItems = [];
-
-    for (const prodId of productIds) {
-      const product = productMap[prodId];
-      const oldQty = oldQtyMap[prodId] || 0;
-      const newQty = newQtyMap[prodId] || 0;
-
-      if (newQty > 0) {
-        if (!product) {
-          return sendError(res, `Product not found in inventory`, null, 404);
-        }
-
-        const changeNeeded = newQty - oldQty;
-        if (changeNeeded > 0 && product.quantity < changeNeeded) {
-          return sendError(
-            res,
-            `Insufficient stock for "${product.name}". Only ${product.quantity} additional units available.`,
-            null,
-            400
-          );
-        }
-
-        stockUpdates.push({
-          product,
-          quantityChange: changeNeeded,
-        });
-
-        // For Sale log, we need costPrice snapshot
-        const oldSaleItem = sale.items.find(item => item.product.toString() === prodId);
-        const costPrice = oldQty > 0 ? (oldSaleItem?.costPrice || product.costPrice || 0) : (product.costPrice || 0);
-
-        enrichedSaleItems.push({
-          product: prodId,
-          name: product.name,
-          quantity: newQty,
-          price: items.find(item => item.product.toString() === prodId).price,
-          costPrice,
-        });
-
-        // For Invoice log, we map product, name, quantity, price
-        enrichedInvoiceItems.push({
-          product: prodId,
-          name: product.name,
-          quantity: newQty,
-          price: items.find(item => item.product.toString() === prodId).price,
-        });
-      } else {
-        if (product) {
-          stockUpdates.push({
-            product,
-            quantityChange: -oldQty,
-          });
+        if (diff !== 0) {
+          const productDoc = await Product.findById(prodId);
+          if (productDoc) {
+            if (diff > 0 && productDoc.quantity < diff) {
+              return sendError(res, `Insufficient stock for ${productDoc.name}. Need ${diff} more, but only ${productDoc.quantity} available.`, null, 400);
+            }
+            productDoc.quantity -= diff;
+            await productDoc.save();
+          }
         }
       }
     }
 
-    // 3. Apply stock updates
-    for (const update of stockUpdates) {
-      const { product, quantityChange } = update;
-      product.quantity -= quantityChange;
-      await product.save();
-
-      // Emit notifications for stock changes
-      if (product.quantity === 0) {
-        emitNotification('OUT_OF_STOCK', 'Out of Stock Warning', `${product.name} is now completely out of stock!`, { id: product._id });
-        await logActivity(null, 'Out of Stock', `${product.name} stock level reached 0`, req);
-      } else if (product.quantity <= 5) {
-        emitNotification('LOW_STOCK', 'Low Stock Warning', `${product.name} has low stock remaining: ${product.quantity} units.`, { id: product._id });
-        await logActivity(null, 'Low Stock', `${product.name} stock level is low: ${product.quantity}`, req);
+    // Snapshot cost prices for new items
+    const enrichedItems = [];
+    if (items) {
+      for (const item of items) {
+        const prodId = item.product?._id || item.product;
+        const prodDoc = await Product.findById(prodId);
+        enrichedItems.push({
+          product: prodId,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          costPrice: prodDoc ? (prodDoc.costPrice || 0) : 0,
+        });
       }
-
-      await logActivity(
-        req.user._id,
-        'Product Updated',
-        `Invoice edit updated stock of ${product.name} by ${-quantityChange}. Remaining: ${product.quantity}`,
-        req
-      );
     }
 
-    // 4. Record edit history entry
     const previousGrandTotal = invoice.grandTotal;
-    const historyEntry = {
+
+    // Track edit history
+    invoice.editHistory.push({
       editedBy: req.user.name,
       editedAt: new Date(),
       previousGrandTotal,
-      newGrandTotal: grandTotal,
-      summary: `Items updated: ${sale.items.length} -> ${items.length}`,
-    };
+      newGrandTotal: grandTotal !== undefined ? grandTotal : invoice.grandTotal,
+      summary: `Invoice modified by ${req.user.name}`,
+    });
 
-    // 5. Update Sale details
-    sale.items = enrichedSaleItems;
-    sale.subTotal = subTotal;
-    sale.discount = discount || 0;
-    sale.tax = tax || 0;
-    sale.grandTotal = grandTotal;
-    sale.paymentMethod = paymentMethod;
-    sale.customerName = customerName || 'Guest';
-    await sale.save();
+    if (customerName) invoice.customerName = customerName;
+    if (paymentMethod) invoice.paymentMethod = paymentMethod;
+    if (enrichedItems.length > 0) invoice.items = enrichedItems;
+    if (grandTotal !== undefined) invoice.grandTotal = grandTotal;
 
-    // 6. Update Invoice details
-    invoice.items = enrichedInvoiceItems;
-    invoice.grandTotal = grandTotal;
-    invoice.paymentMethod = paymentMethod;
-    invoice.customerName = customerName || 'Guest';
-    invoice.cashierName = req.user.name; // update cashier to the one who edited
-    
-    if (!invoice.editHistory) {
-      invoice.editHistory = [];
-    }
-    invoice.editHistory.push(historyEntry);
     await invoice.save();
 
-    // 7. Log Activity and emit notification
+    if (sale) {
+      if (customerName) sale.customerName = customerName;
+      if (paymentMethod) sale.paymentMethod = paymentMethod;
+      if (enrichedItems.length > 0) sale.items = enrichedItems;
+      if (subTotal !== undefined) sale.subTotal = subTotal;
+      if (discount !== undefined) sale.discount = discount;
+      if (tax !== undefined) sale.tax = tax;
+      if (grandTotal !== undefined) sale.grandTotal = grandTotal;
+      await sale.save();
+    }
+
     await logActivity(
       req.user._id,
-      'Sale Edited',
-      `Edited invoice transaction. Invoice: ${invoiceNumber}, New Grand Total: ${grandTotal}`,
+      'Invoice Modified',
+      `Modified invoice ${invoice.invoiceNumber}. Total changed from ${previousGrandTotal} to ${invoice.grandTotal}`,
       req
     );
 
-    emitNotification('SALE_COMPLETED', 'Sale Updated', `Invoice updated: ${invoiceNumber} (${paymentMethod})`, { invoiceNumber });
-
-    // Populate items and sale for the response
-    const updatedInvoice = await Invoice.findById(invoice._id).populate('items.product').populate('sale');
-    return sendSuccess(res, 'Invoice updated successfully', updatedInvoice);
+    return sendSuccess(res, 'Invoice updated successfully', invoice);
   } catch (error) {
-    return sendError(res, 'Failed to update invoice details', error, 500);
+    return sendError(res, 'Failed to update invoice', error, 500);
   }
 };
 
-
-// @desc    Get raw sales log list (useful for CEO sales reports filtering)
-// @route   GET /api/sales
-// @access  Private (CEO & Admin)
-export const getSalesList = async (req, res) => {
-  const { startDate, endDate, admin, product } = req.query;
-
+// @desc    Delete/Refund Sale transaction
+// @route   DELETE /api/sales/:id
+// @access  Private
+export const deleteSale = async (req, res) => {
   try {
-    const query = {};
-
-    if (startDate && endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: end,
-      };
-    } else if (startDate) {
-      query.date = {
-        $gte: new Date(startDate),
-      };
-    } else if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      query.date = {
-        $lte: end,
-      };
+    const sale = await Sale.findById(req.params.id);
+    if (!sale) {
+      return sendError(res, 'Sale record not found', null, 404);
     }
 
-    if (admin) {
-      query.cashier = admin;
+    // Restock items in inventory
+    for (const item of sale.items) {
+      const product = await Product.findById(item.product);
+      if (product) {
+        product.quantity += Number(item.quantity);
+        await product.save();
+        await logActivity(
+          req.user._id,
+          'Inventory Restock',
+          `Stock-In via Refund (${sale.invoiceNumber}): +${item.quantity} for ${product.name}`,
+          req
+        );
+      }
     }
 
-    if (product) {
-      query['items.product'] = product;
-    }
+    await Invoice.findOneAndDelete({ invoiceNumber: sale.invoiceNumber });
+    await Sale.findByIdAndDelete(req.params.id);
 
-    const sales = await Sale.find(query)
-      .populate('cashier', 'name email role')
-      .sort('-date');
+    await logActivity(
+      req.user._id,
+      'Sale Cancelled',
+      `Refunded transaction Invoice: ${sale.invoiceNumber}`,
+      req
+    );
 
-    return sendSuccess(res, 'Sales logs retrieved successfully', sales);
+    return sendSuccess(res, 'Sale record deleted and stock refunded');
   } catch (error) {
-    return sendError(res, 'Failed to fetch sales logs', error, 500);
+    return sendError(res, 'Failed to delete sale record', error, 500);
   }
 };

@@ -92,7 +92,6 @@ const SalesReports = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
-
   const handleFilterSubmit = (e) => {
     e.preventDefault();
     fetchSalesData();
@@ -164,6 +163,38 @@ const SalesReports = () => {
   const bestSelling = [...rankings].sort((a, b) => b.qty - a.qty).slice(0, 5);
   const lowSelling = [...rankings].sort((a, b) => a.qty - b.qty).slice(0, 5);
 
+  // CSV Export for Excel
+  const handleExportCSV = () => {
+    if (sales.length === 0) {
+      addToast('Error', 'No data available to export', 'error');
+      return;
+    }
+
+    const headers = ['Invoice Number', 'Date', 'Customer Name', 'Cashier', 'Payment Method', 'Items Count', 'Grand Total'];
+    const rows = sales.map((s) => [
+      s.invoiceNumber,
+      new Date(s.date).toLocaleDateString(),
+      s.customerName,
+      s.cashier?.name || 'System',
+      s.paymentMethod,
+      s.items.reduce((acc, i) => acc + i.quantity, 0),
+      s.grandTotal,
+    ]);
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `sales_report_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addToast('Export Successful', 'Sales CSV report has been downloaded', 'success');
+  };
+
   // --- PROFIT CALCULATIONS (using costPrice snapshots) ---
   const getTotalCOGS = () =>
     sales.reduce((acc, sale) =>
@@ -201,7 +232,6 @@ const SalesReports = () => {
           </div>
         </div>
       </div>
-
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div>
@@ -213,18 +243,18 @@ const SalesReports = () => {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={handlePrintPDF}
+            onClick={handleExportCSV}
             className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md"
           >
-            <FileDown className="w-4 h-4 text-indigo-450" />
-            Export PDF
+            <Download className="w-4 h-4 text-emerald-450" />
+            Export CSV
           </button>
           <button
             onClick={handlePrintPDF}
             className="px-4 py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-lg"
           >
             <Printer className="w-4 h-4" />
-            Print Report
+            Print Ledger / PDF
           </button>
         </div>
       </div>
@@ -350,7 +380,6 @@ const SalesReports = () => {
           </div>
         </div>
       </div>
-
       {/* --- TIME PERIOD SALES CARDS --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">

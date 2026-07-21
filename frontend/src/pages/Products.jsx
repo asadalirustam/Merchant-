@@ -66,7 +66,6 @@ const Products = () => {
   const [scanError, setScanError] = useState('');
   const html5QrCodeRef = useRef(null);
   const scannerContainerId = 'qr-scanner-container';
-
   // Form Fields
   const [name, setName] = useState('');
   const [productCode, setProductCode] = useState('');
