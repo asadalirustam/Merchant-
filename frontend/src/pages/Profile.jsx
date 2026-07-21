@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import API from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
+import { getImageUrl } from '../utils/urlHelper';
 import { User, Mail, Calendar, KeyRound, ShieldCheck, Lock, Camera } from 'lucide-react';
 
 const Profile = () => {
@@ -11,7 +12,7 @@ const Profile = () => {
   const [name, setName] = useState(user?.name || '');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(
-    user?.profileImage ? `http://localhost:5000${user.profileImage}` : ''
+    user?.profileImage ? getImageUrl(user.profileImage) : ''
   );
 
   const [oldPassword, setOldPassword] = useState('');

@@ -2,6 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import { SettingsContext } from '../context/SettingsContext';
 import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
+import { getImageUrl } from '../utils/urlHelper';
 import {
   Settings,
   Upload,
@@ -48,7 +49,7 @@ const ShopSettings = () => {
       setInvoiceFooter(settings.invoiceFooter || '');
       setTheme(settings.theme || 'dark');
       if (settings.logo) {
-        setLogoPreview(`http://localhost:5000${settings.logo}`);
+        setLogoPreview(getImageUrl(settings.logo));
       }
     }
   }, [settings]);

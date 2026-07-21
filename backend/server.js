@@ -1,6 +1,10 @@
 import dns from 'dns';
-// Set fallback DNS to resolve MongoDB Atlas SRV records
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+// Set fallback DNS to resolve MongoDB Atlas SRV records in development if needed
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+} catch (dnsErr) {
+  console.warn('DNS setServers skipped:', dnsErr.message);
+}
 
 import express from 'express';
 import http from 'http';
@@ -54,7 +58,12 @@ app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
+      if (
+        allowedOrigins.indexOf(origin) !== -1 ||
+        origin.startsWith('http://localhost:') ||
+        origin.endsWith('.vercel.app') ||
+        origin.includes('vercel.app')
+      ) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'), false);

@@ -2,6 +2,7 @@ import { useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { SettingsContext } from '../context/SettingsContext';
+import { getImageUrl } from '../utils/urlHelper';
 import {
   LayoutDashboard,
   Users,
@@ -95,7 +96,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
         <div className="flex items-center gap-3 overflow-hidden">
           {settings.logo ? (
-            <img src={`http://localhost:5000${settings.logo}`} alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+            <img src={getImageUrl(settings.logo)} alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0" />
           ) : (
             <Store className="w-7 h-7 text-indigo-500 shrink-0" />
           )}
@@ -150,7 +151,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         >
           <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-750 flex items-center justify-center font-bold text-indigo-400 shrink-0 overflow-hidden">
             {user?.profileImage ? (
-              <img src={`http://localhost:5000${user.profileImage}`} alt="Profile" className="w-full h-full object-cover" />
+              <img src={getImageUrl(user.profileImage)} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               user?.name?.slice(0, 2).toUpperCase()
             )}

@@ -5,6 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 import { SettingsContext } from '../context/SettingsContext';
 import { NotificationContext } from '../context/NotificationContext';
 import { Html5Qrcode } from 'html5-qrcode';
+import { getImageUrl } from '../utils/urlHelper';
 import {
   Package,
   Search,
@@ -143,7 +144,7 @@ const Products = () => {
     setQuantity(prod.quantity);
     setDescription(prod.description || '');
     setImageFile(null);
-    setImagePreview(prod.productImage ? `http://localhost:5000${prod.productImage}` : '');
+    setImagePreview(prod.productImage ? getImageUrl(prod.productImage) : '');
     
     // Check if category is standard or custom
     const defaultCats = ['Electronics', 'Groceries', 'Apparel', 'Home & Kitchen', 'Office Supplies'];
@@ -454,7 +455,7 @@ const Products = () => {
                 <div className="w-20 h-20 bg-slate-950 border border-slate-850 rounded-xl flex items-center justify-center shrink-0 text-slate-650 overflow-hidden relative">
                   {prod.productImage ? (
                     <img
-                      src={`http://localhost:5000${prod.productImage}`}
+                      src={getImageUrl(prod.productImage)}
                       alt={prod.name}
                       className="w-full h-full object-cover"
                     />
@@ -842,7 +843,7 @@ const Products = () => {
                   <div className="flex gap-3 bg-slate-950 rounded-xl p-3 border border-slate-850">
                     <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0 overflow-hidden">
                       {scannedProduct.productImage ? (
-                        <img src={`http://localhost:5000${scannedProduct.productImage}`} alt={scannedProduct.name} className="w-full h-full object-cover" />
+                        <img src={getImageUrl(scannedProduct.productImage)} alt={scannedProduct.name} className="w-full h-full object-cover" />
                       ) : (
                         <Package className="w-6 h-6 text-slate-600" />
                       )}

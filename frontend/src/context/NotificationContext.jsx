@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { BACKEND_URL } from '../utils/urlHelper';
 
 export const NotificationContext = createContext();
 
@@ -33,7 +34,7 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     // Establish connection to socket server
-    const socket = io('http://localhost:5000');
+    const socket = io(BACKEND_URL);
 
     socket.on('connect', () => {
       console.log('Connected to WebSocket server');
