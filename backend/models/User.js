@@ -36,6 +36,16 @@ const userSchema = new mongoose.Schema(
     lastLogin: {
       type: Date,
     },
+    resetCode: {
+      type: String,
+    },
+    resetCodeExpires: {
+      type: Date,
+    },
+    profileImage: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

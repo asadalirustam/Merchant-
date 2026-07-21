@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import API from '../utils/api';
 import { SettingsContext } from '../context/SettingsContext';
 import { NotificationContext } from '../context/NotificationContext';
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react';
 
 const SalesReports = () => {
-  const { getCurrencySymbol } = useContext(SettingsContext);
+  const { settings, getCurrencySymbol } = useContext(SettingsContext);
   const { addToast } = useContext(NotificationContext);
   const currencySymbol = getCurrencySymbol();
 
@@ -25,9 +26,11 @@ const SalesReports = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const location = useLocation();
+
   // Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(location.state?.startDate || '');
+  const [endDate, setEndDate] = useState(location.state?.endDate || '');
   const [selectedAdmin, setSelectedAdmin] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
 
@@ -61,9 +64,32 @@ const SalesReports = () => {
 
   useEffect(() => {
     fetchFiltersData();
-    fetchSalesData();
+    if (!location.state) {
+      fetchSalesData();
+    }
   }, []);
 
+  // Watch for location state transitions to auto-apply filters and refetch
+  useEffect(() => {
+    if (location.state) {
+      const sDate = location.state.startDate || '';
+      const eDate = location.state.endDate || '';
+      setStartDate(sDate);
+      setEndDate(eDate);
+      
+      // Auto-trigger fetch
+      setLoading(true);
+      const url = `/sales?startDate=${sDate}&endDate=${eDate}&admin=${selectedAdmin}&product=${selectedProduct}`;
+      API.get(url)
+        .then(({ data }) => {
+          if (data.success) {
+            setSales(data.data);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [location.state]);
   const handleFilterSubmit = (e) => {
     e.preventDefault();
     fetchSalesData();
@@ -167,12 +193,43 @@ const SalesReports = () => {
     addToast('Export Successful', 'Sales CSV report has been downloaded', 'success');
   };
 
+  // --- PROFIT CALCULATIONS (using costPrice snapshots) ---
+  const getTotalCOGS = () =>
+    sales.reduce((acc, sale) =>
+      acc + sale.items.reduce((iAcc, item) => iAcc + (item.costPrice || 0) * item.quantity, 0)
+    , 0);
+
+  const getTotalSalesProfit = () => {
+    const revenue = getFilteredTotalRevenue();
+    const cogs = getTotalCOGS();
+    return revenue - cogs;
+  };
+
+  const getProfitMargin = () => {
+    const revenue = getFilteredTotalRevenue();
+    if (revenue === 0) return 0;
+    return ((getTotalSalesProfit() / revenue) * 100).toFixed(1);
+  };
+
   const handlePrintPDF = () => {
     window.print();
   };
 
   return (
     <div className="space-y-8">
+      {/* Print-only report header */}
+      <div className="hidden print:block text-slate-900 border-b-2 border-slate-900 pb-4 mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">{settings.shopName || 'Enterprise Merchant Store'}</h1>
+            <p className="text-sm font-semibold mt-0.5 text-slate-600">Consolidated Sales Ledger Report</p>
+          </div>
+          <div className="text-right text-xs text-slate-500 font-mono">
+            <p>Printed: {new Date().toLocaleString()}</p>
+            <p>Period: {startDate ? new Date(startDate).toLocaleDateString() : 'All Time'} - {endDate ? new Date(endDate).toLocaleDateString() : 'Present'}</p>
+          </div>
+        </div>
+      </div>
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div>
@@ -283,6 +340,44 @@ const SalesReports = () => {
         </div>
       </form>
 
+      {/* --- PROFIT ANALYSIS SECTION --- */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <h3 className="font-bold text-sm text-slate-200 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-emerald-400" />
+          Profit Analysis
+          <span className="text-[10px] text-slate-500 font-normal ml-1">(based on current filtered records)</span>
+        </h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Revenue */}
+          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
+            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Total Revenue</p>
+            <h4 className="text-lg font-black text-slate-100 mt-1">
+              {currencySymbol}{getFilteredTotalRevenue().toLocaleString()}
+            </h4>
+          </div>
+          {/* Cost of Goods Sold */}
+          <div className="bg-slate-950/50 rounded-xl p-4 border border-orange-900/30">
+            <p className="text-[10px] text-orange-400 font-semibold uppercase tracking-wider">Cost of Goods Sold</p>
+            <h4 className="text-lg font-black text-orange-400 mt-1">
+              {currencySymbol}{getTotalCOGS().toLocaleString()}
+            </h4>
+          </div>
+          {/* Net Profit */}
+          <div className={`bg-slate-950/50 rounded-xl p-4 border ${getTotalSalesProfit() >= 0 ? 'border-emerald-900/30' : 'border-rose-900/30'}`}>
+            <p className={`text-[10px] font-semibold uppercase tracking-wider ${getTotalSalesProfit() >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>Net Profit</p>
+            <h4 className={`text-lg font-black mt-1 ${getTotalSalesProfit() >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {getTotalSalesProfit() >= 0 ? '' : '-'}{currencySymbol}{Math.abs(getTotalSalesProfit()).toLocaleString()}
+            </h4>
+          </div>
+          {/* Profit Margin % */}
+          <div className={`bg-slate-950/50 rounded-xl p-4 border ${getProfitMargin() >= 0 ? 'border-violet-900/30' : 'border-rose-900/30'}`}>
+            <p className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider">Profit Margin</p>
+            <h4 className={`text-lg font-black mt-1 ${getProfitMargin() >= 0 ? 'text-violet-400' : 'text-rose-400'}`}>
+              {getProfitMargin()}%
+            </h4>
+          </div>
+        </div>
+      </div>
       {/* --- TIME PERIOD SALES CARDS --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center gap-4">

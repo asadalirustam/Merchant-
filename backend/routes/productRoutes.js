@@ -24,7 +24,7 @@ router.route('/:id')
   .put(upload.single('productImage'), updateProduct)
   .delete(deleteProduct);
 
-router.get('/info/:idOrSku', getProductById);
+router.get('/info/:idOrCode', getProductById);
 router.patch('/:id/adjust', adjustProduct);
 
 export default router;

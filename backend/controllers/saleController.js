@@ -29,7 +29,8 @@ export const createSale = async (req, res) => {
     const random = Math.floor(1000 + Math.random() * 9000);
     const invoiceNumber = `INV-${timestamp}-${random}`;
 
-    // Verify quantities of products in inventory first
+    // Load products once, verify stock, snapshot costPrice
+    const enrichedItems = [];
     for (const item of items) {
       const product = await Product.findById(item.product);
       if (!product) {
@@ -43,10 +44,17 @@ export const createSale = async (req, res) => {
           400
         );
       }
+      enrichedItems.push({
+        product: item.product,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        costPrice: product.costPrice || 0, // Snapshot at time of sale
+      });
     }
 
-    // Process actual stock decrements
-    for (const item of items) {
+    // Process actual stock decrements using enriched items
+    for (const item of enrichedItems) {
       const product = await Product.findById(item.product);
       product.quantity -= Number(item.quantity);
       await product.save();
@@ -68,31 +76,24 @@ export const createSale = async (req, res) => {
       );
     }
 
-    // Save final sale log
+    // Accumulate customer total spending if customer selected
+    if (customerId) {
+      const customer = await Customer.findById(customerId);
+      if (customer) {
+        customer.totalSpending += Number(grandTotal);
+        await customer.save();
+      }
+    }
+
+    // Save final sale invoice
     const sale = await Sale.create({
       invoiceNumber,
+      customer: customerId || null,
+      cashier: req.user._id,
       items,
       subTotal,
-      discount: discount || 0,
-      tax: tax || 0,
-      grandTotal,
-      paymentMethod,
-      cashier: req.user._id,
-      customerName: customerName || 'Guest',
-    });
-
-    // Save corresponding Invoice log in the Invoices collection
-    const invoice = await Invoice.create({
-      invoiceNumber,
-      sale: sale._id,
-      customerName: customerName || 'Guest',
-      cashierName: req.user.name,
-      items: items.map(item => ({
-        product: item.product,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      })),
+      discountAmount: discountAmount || 0,
+      taxAmount: taxAmount || 0,
       grandTotal,
       paymentMethod,
       date: new Date(),
@@ -113,89 +114,50 @@ export const createSale = async (req, res) => {
   }
 };
 
-// @desc    Get Invoices (Invoice History with Search and Filters)
-// @route   GET /api/invoices
-// @access  Private (CEO & Admin)
-export const getInvoices = async (req, res) => {
-  const { search, product, date, customerName } = req.query;
-
+// @desc    Delete/Refund Sale transaction
+// @route   DELETE /api/sales/:id
+// @access  Private
+export const deleteSale = async (req, res) => {
   try {
-    const query = {};
-
-    if (search) {
-      query.invoiceNumber = { $regex: search, $options: 'i' };
+    const sale = await Sale.findById(req.params.id);
+    if (!sale) {
+      return sendError(res, 'Sale record not found', null, 404);
     }
 
-    if (customerName) {
-      query.customerName = { $regex: customerName, $options: 'i' };
+    // Restock items in inventory
+    for (const item of sale.items) {
+      const product = await Product.findById(item.product);
+      if (product) {
+        product.quantity += Number(item.quantity);
+        await product.save();
+        await logActivity(
+          req.user._id,
+          'INVENTORY_ADJUST',
+          `Stock-In via Sale Return/Refund (${sale.invoiceNumber}): +${item.quantity} for product ${product.name}`,
+          req
+        );
+      }
     }
 
-    if (product) {
-      query['items.name'] = { $regex: product, $options: 'i' };
+    // Deduct spending amount from customer profile
+    if (sale.customer) {
+      const customer = await Customer.findById(sale.customer);
+      if (customer) {
+        customer.totalSpending = Math.max(0, customer.totalSpending - sale.grandTotal);
+        await customer.save();
+      }
     }
 
-    if (date) {
-      const targetDate = new Date(date);
-      const nextDay = new Date(targetDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      
-      query.date = {
-        $gte: targetDate,
-        $lt: nextDay,
-      };
-    }
+    await Sale.findByIdAndDelete(req.params.id);
 
-    const invoices = await Invoice.find(query).sort('-date');
-    return sendSuccess(res, 'Invoices retrieved successfully', invoices);
-  } catch (error) {
-    return sendError(res, 'Failed to fetch invoices history', error, 500);
-  }
-};
+    await logActivity(
+      req.user._id,
+      'SALE_DELETE',
+      `Cancelled and refunded transaction Invoice: ${sale.invoiceNumber}`,
+      req
+    );
 
-// @desc    Get single invoice details by Invoice Number
-// @route   GET /api/invoices/:invoiceNumber
-// @access  Private (CEO & Admin)
-export const getInvoiceDetails = async (req, res) => {
-  try {
-    const invoice = await Invoice.findOne({ invoiceNumber: req.params.invoiceNumber }).populate('items.product');
-    if (!invoice) {
-      return sendError(res, 'Invoice not found', null, 404);
-    }
-    return sendSuccess(res, 'Invoice details retrieved successfully', invoice);
-  } catch (error) {
-    return sendError(res, 'Failed to fetch invoice details', error, 500);
-  }
-};
-
-// @desc    Get raw sales log list (useful for CEO sales reports filtering)
-// @route   GET /api/sales
-// @access  Private (CEO & Admin)
-export const getSalesList = async (req, res) => {
-  const { startDate, endDate, admin, product } = req.query;
-
-  try {
-    const query = {};
-
-    if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
-    }
-
-    if (admin) {
-      query.cashier = admin;
-    }
-
-    if (product) {
-      query['items.product'] = product;
-    }
-
-    const sales = await Sale.find(query)
-      .populate('cashier', 'name email role')
-      .sort('-date');
-
-    return sendSuccess(res, 'Sales logs retrieved successfully', sales);
+    return sendSuccess(res, 'Sale record deleted and stock refunded');
   } catch (error) {
     return sendError(res, 'Failed to fetch sales logs', error, 500);
   }

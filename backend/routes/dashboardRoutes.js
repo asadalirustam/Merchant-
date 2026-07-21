@@ -5,6 +5,6 @@ import { authorizeRoles } from '../middleware/roleMiddleware.js';
 
 const router = express.Router();
 
-router.get('/stats', protect, authorizeRoles('CEO'), getDashboardStats);
+router.get('/stats', protect, authorizeRoles('CEO', 'Admin'), getDashboardStats);
 
 export default router;

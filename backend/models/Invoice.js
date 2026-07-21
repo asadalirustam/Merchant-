@@ -19,6 +19,28 @@ const invoiceItemSchema = new mongoose.Schema({
   },
 });
 
+const invoiceEditSchema = new mongoose.Schema({
+  editedBy: {
+    type: String,
+    required: true,
+  },
+  editedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  previousGrandTotal: {
+    type: Number,
+    required: true,
+  },
+  newGrandTotal: {
+    type: Number,
+    required: true,
+  },
+  summary: {
+    type: String,
+  },
+});
+
 const invoiceSchema = new mongoose.Schema(
   {
     invoiceNumber: {
@@ -52,6 +74,7 @@ const invoiceSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    editHistory: [invoiceEditSchema],
   },
   {
     timestamps: true,
@@ -60,3 +83,4 @@ const invoiceSchema = new mongoose.Schema(
 
 const Invoice = mongoose.model('Invoice', invoiceSchema);
 export default Invoice;
+

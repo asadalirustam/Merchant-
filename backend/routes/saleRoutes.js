@@ -4,6 +4,7 @@ import {
   getInvoices,
   getInvoiceDetails,
   getSalesList,
+  updateInvoice,
 } from '../controllers/saleController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -21,6 +22,7 @@ router.route('/invoices')
   .get(getInvoices);
 
 router.route('/invoices/:invoiceNumber')
-  .get(getInvoiceDetails);
+  .get(getInvoiceDetails)
+  .put(updateInvoice);
 
 export default router;

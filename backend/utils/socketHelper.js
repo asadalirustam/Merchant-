@@ -5,7 +5,12 @@ let io = null;
 export const initIO = (server, frontendUrl) => {
   io = new Server(server, {
     cors: {
-      origin: frontendUrl || '*',
+      origin: [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5175',
+        frontendUrl
+      ].filter(Boolean),
       methods: ['GET', 'POST'],
     },
   });

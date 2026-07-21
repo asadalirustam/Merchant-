@@ -243,3 +243,56 @@ export const deleteProduct = async (req, res) => {
     return sendError(res, 'Failed to delete product', error, 500);
   }
 };
+
+// @desc    Adjust product stock level or price
+// @route   PATCH /api/products/:id/adjust
+// @access  Private (Admin Only)
+export const adjustProduct = async (req, res) => {
+  if (req.user.role === 'CEO') {
+    return sendError(res, 'Access Denied: CEOs do not have permissions to adjust product data.', null, 403);
+  }
+
+  const { quantity, price } = req.body;
+
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return sendError(res, 'Product not found', null, 404);
+    }
+
+    let activityDetails = [];
+
+    if (quantity !== undefined) {
+      const oldQty = product.quantity;
+      product.quantity = Number(quantity);
+      activityDetails.push(`stock adjusted from ${oldQty} to ${product.quantity}`);
+    }
+
+    if (price !== undefined) {
+      const oldPrice = product.price;
+      product.price = Number(price);
+      activityDetails.push(`price adjusted from ${oldPrice} to ${product.price}`);
+      await logActivity(req.user._id, 'Price Changed', `Admin adjusted price of ${product.name} to ${product.price}`, req);
+    }
+
+    await product.save();
+
+    await logActivity(
+      req.user._id,
+      'Product Updated',
+      `Admin adjusted product (${product.name}): ${activityDetails.join(', ')}`,
+      req
+    );
+
+    // Emit alerts if needed
+    if (product.quantity === 0) {
+      emitNotification('OUT_OF_STOCK', 'Out of Stock Warning', `${product.name} is out of stock.`, { id: product._id });
+    } else if (product.quantity <= 5) {
+      emitNotification('LOW_STOCK', 'Low Stock Warning', `${product.name} has low stock (${product.quantity} remaining).`, { id: product._id });
+    }
+
+    return sendSuccess(res, 'Product adjusted successfully', product);
+  } catch (error) {
+    return sendError(res, 'Failed to adjust product data', error, 500);
+  }
+};

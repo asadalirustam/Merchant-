@@ -54,12 +54,12 @@ const ProtectedLayout = ({ allowedRoles }) => {
       <Sidebar />
 
       {/* Main body wrapper */}
-      <div className="flex-1 flex flex-col ml-64 min-h-screen">
+      <div className="flex-1 flex flex-col ml-64 print:ml-0 min-h-screen">
         {/* Navbar */}
         <Navbar />
 
         {/* Content area */}
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-8 print:p-0 overflow-y-auto">
           <Outlet />
         </main>
       </div>

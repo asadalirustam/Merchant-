@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useContext } from 'react';
+import QRCode from 'qrcode';
 import API from '../utils/api';
 import { SettingsContext } from '../context/SettingsContext';
 import { NotificationContext } from '../context/NotificationContext';
@@ -8,12 +9,9 @@ import {
   Trash2,
   Plus,
   Minus,
-  CreditCard,
   QrCode,
-  DollarSign,
   User,
   Percent,
-  CheckCircle,
   Printer,
   X,
   Store,
@@ -24,48 +22,77 @@ const POSBilling = () => {
   const { addToast } = useContext(NotificationContext);
   const currencySymbol = getCurrencySymbol();
 
+  const [allProducts, setAllProducts] = useState([]);
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState('Guest');
   const [discountPercent, setDiscountPercent] = useState(0); // Discount in percentage
-  const [taxPercent, setTaxPercent] = useState(settings.taxPercentage || 0);
+  const [taxPercent] = useState(settings.taxPercentage || 0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
 
   // Checkout modal
   const [checkoutResult, setCheckoutResult] = useState(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [invoiceQrDataUrl, setInvoiceQrDataUrl] = useState('');
 
   const searchInputRef = useRef(null);
 
-  // Focus search input on mount
+  // Generate QR code data URL whenever a new checkout result is available
   useEffect(() => {
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
+    if (checkoutResult?.invoiceNumber) {
+      QRCode.toDataURL(checkoutResult.invoiceNumber, {
+        width: 160,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+      })
+        .then((url) => setInvoiceQrDataUrl(url))
+        .catch(() => setInvoiceQrDataUrl(''));
+    } else {
+      setInvoiceQrDataUrl('');
     }
-  }, []);
+  }, [checkoutResult]);
 
-  const handleSearch = async (e) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-
-    if (val.trim().length === 0) {
-      setProducts([]);
-      return;
-    }
-
+  const fetchAllProducts = async () => {
     try {
-      // Query backend product catalog
-      const { data } = await API.get(`/products?search=${val}`);
+      const { data } = await API.get('/products');
       if (data.success) {
-        setProducts(data.data.products);
+        const list = data.data.products || [];
+        setAllProducts(list);
+        setProducts(list);
       }
     } catch (error) {
       console.error(error);
     }
   };
 
+  // Focus search input on mount and load products
+  useEffect(() => {
+    fetchAllProducts();
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
+
+  const handleSearch = (e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+
+    if (val.trim().length === 0) {
+      setProducts(allProducts);
+      return;
+    }
+
+    const query = val.toLowerCase();
+    const filtered = allProducts.filter(
+      (prod) =>
+        prod.name.toLowerCase().includes(query) ||
+        prod.productCode.toLowerCase().includes(query) ||
+        (prod.category && prod.category.toLowerCase().includes(query))
+    );
+    setProducts(filtered);
+  };
   const addToCart = (product) => {
     if (product.quantity <= 0) {
       addToast('Out of Stock', `${product.name} is out of stock.`, 'error');
@@ -100,7 +127,7 @@ const POSBilling = () => {
     }
 
     setSearchQuery('');
-    setProducts([]);
+    setProducts(allProducts);
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
@@ -169,6 +196,8 @@ const POSBilling = () => {
         setCart([]);
         setCustomerName('Guest');
         setDiscountPercent(0);
+        // Refresh product list to update remaining stock quantities
+        fetchAllProducts();
       }
     } catch (error) {
       addToast('Checkout Failed', error.response?.data?.message || 'Transaction could not be completed', 'error');
@@ -249,7 +278,15 @@ const POSBilling = () => {
           </table>
           
           <div class="divider"></div>
-          <div class="text-center" style="margin-top: 15px; font-weight: bold;">
+          ${invoiceQrDataUrl ? `
+          <div class="text-center" style="margin-top: 14px;">
+            <img src="${invoiceQrDataUrl}" alt="Invoice QR" style="width:110px;height:110px;margin:0 auto;display:block;" />
+            <div style="font-size:9px;color:#666;margin-top:4px;">Scan to verify invoice</div>
+            <div style="font-size:8px;color:#999;margin-top:2px;font-family:monospace;">${checkoutResult?.invoiceNumber}</div>
+          </div>
+          ` : ''}
+          <div class="divider"></div>
+          <div class="text-center" style="margin-top: 10px; font-weight: bold;">
             Thank you for shopping with us!
           </div>
         </body>
@@ -285,13 +322,11 @@ const POSBilling = () => {
 
         {/* Live Search List Drawer */}
         <div className="flex-1 overflow-y-auto min-h-0 bg-slate-950/40 rounded-xl border border-slate-850 p-2 space-y-2">
-          {searchQuery.trim().length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-600 text-xs">
+          {products.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs py-8">
               <QrCode className="w-12 h-12 text-slate-800 mb-2" />
-              <span>Awaiting barcode scans or item search keywords...</span>
+              <span>No products found matching your search.</span>
             </div>
-          ) : products.length === 0 ? (
-            <div className="text-center text-slate-500 text-xs py-8">No matching products found.</div>
           ) : (
             <div className="divide-y divide-slate-800/40">
               {products.map((prod) => (
@@ -542,6 +577,16 @@ const POSBilling = () => {
                 </div>
               </div>
 
+              {/* Invoice QR Code */}
+              {invoiceQrDataUrl && (
+                <div className="border-t border-dashed border-slate-800 pt-4 flex flex-col items-center gap-2">
+                  <p className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold">Scan to Verify Invoice</p>
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-inner">
+                    <img src={invoiceQrDataUrl} alt="Invoice QR" className="w-24 h-24" />
+                  </div>
+                  <p className="text-[8px] font-mono text-slate-600">{checkoutResult.invoiceNumber}</p>
+                </div>
+              )}
               {/* Printing actions */}
               <div className="border-t border-dashed border-slate-800 pt-4 flex gap-3">
                 <button

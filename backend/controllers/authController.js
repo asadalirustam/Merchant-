@@ -41,7 +41,8 @@ export const registerCEO = async (req, res) => {
       refreshToken,
     }, 211);
   } catch (error) {
-    return sendError(res, 'Registration failed', error, 500);
+    console.error('CEO Bootstrap Error:', error);
+    return sendError(res, error.message || 'Registration failed', error, 500);
   }
 };
 
@@ -176,5 +177,114 @@ export const changePassword = async (req, res) => {
     return sendSuccess(res, 'Password changed successfully');
   } catch (error) {
     return sendError(res, 'Change password failed', error, 500);
+  }
+};
+
+// @desc    Forgot password - generate reset code
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return sendError(res, 'Please provide email', null, 400);
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return sendError(res, 'User with that email does not exist', null, 404);
+    }
+
+    // Generate random 6-digit code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetCode = resetCode;
+    user.resetCodeExpires = Date.now() + 15 * 60 * 1000; // 15 mins expiry
+    await user.save();
+
+    console.log(`\n======================================================`);
+    console.log(`[PASSWORD RESET CODE] for $\{email\}: $\{resetCode\}`);
+    console.log(`======================================================\n`);
+
+    return sendSuccess(res, 'Password reset code generated successfully', { resetCode });
+  } catch (error) {
+    return sendError(res, 'Forgot password failed', error, 500);
+  }
+};
+
+// @desc    Reset password using reset code
+// @route   POST /api/auth/reset-password
+// @access  Public
+export const resetPassword = async (req, res) => {
+  const { email, resetCode, newPassword } = req.body;
+
+  if (!email || !resetCode || !newPassword) {
+    return sendError(res, 'Please provide email, resetCode and newPassword', null, 400);
+  }
+
+  if (newPassword.length < 6) {
+    return sendError(res, 'Password must be at least 6 characters', null, 400);
+  }
+
+  try {
+    const user = await User.findOne({
+      email,
+      resetCode,
+      resetCodeExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return sendError(res, 'Invalid or expired password reset code', null, 400);
+    }
+
+    user.password = newPassword;
+    user.resetCode = undefined;
+    user.resetCodeExpires = undefined;
+    await user.save();
+
+    await logActivity(user._id, 'Password Reset', `User reset password successfully via email reset code`, req);
+
+    return sendSuccess(res, 'Password reset successfully. You can now log in.');
+  } catch (error) {
+    return sendError(res, 'Reset password failed', error, 500);
+  }
+};
+
+// @desc    Update user profile (name, profileImage)
+// @route   PUT /api/auth/update-profile
+// @access  Private
+export const updateProfile = async (req, res) => {
+  const { name } = req.body;
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return sendError(res, 'User not found', null, 404);
+    }
+
+    if (name) {
+      user.name = name;
+    }
+
+    if (req.file) {
+      // Save local path for avatar upload
+      user.profileImage = `/uploads/${req.file.filename}`;
+    }
+
+    await user.save();
+
+    await logActivity(user._id, 'Profile Updated', 'User updated profile details', req);
+
+    return sendSuccess(res, 'Profile updated successfully', {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      profileImage: user.profileImage,
+      createdAt: user.createdAt,
+    });
+  } catch (error) {
+    return sendError(res, 'Profile update failed', error, 500);
   }
 };

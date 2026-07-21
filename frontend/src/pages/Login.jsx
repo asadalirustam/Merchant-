@@ -2,7 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
-import { Store, Mail, Lock, User, ArrowRight, RefreshCw, KeyRound } from 'lucide-react';
+import { Store, Mail, Lock, User, ArrowRight, RefreshCw, KeyRound, Eye, EyeOff } from 'lucide-react';
 import API from '../utils/api';
 
 const Login = () => {
@@ -27,6 +27,8 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showCeoPassword, setShowCeoPassword] = useState(false);
 
   const from = location.state?.from?.pathname || '/pos';
 
@@ -160,6 +162,10 @@ const Login = () => {
           {/* 1. LOGIN MODE */}
           {!isCEOMode && !isForgotPasswordMode && !isResetConfirmMode && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
+              {/* Dummy input elements to intercept browser autofills */}
+              <input type="text" name="chrome_prevent_autofill_email" style={{ display: 'none' }} autoComplete="username" />
+              <input type="password" name="chrome_prevent_autofill_pass" style={{ display: 'none' }} autoComplete="new-password" />
+
               <div>
                 <label className="text-xs text-slate-400 font-semibold block mb-1.5">Email Address</label>
                 <div className="relative">
@@ -169,6 +175,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@company.com"
+                    autoComplete="off"
                     className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all"
                   />
                 </div>
@@ -191,12 +198,20 @@ const Login = () => {
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all"
+                    autoComplete="new-password"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-10 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-350 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -210,6 +225,33 @@ const Login = () => {
                   />
                   Remember my session
                 </label>
+              </div>
+
+              {/* Quick Demo Autofill Accounts */}
+              <div className="bg-slate-950/60 border border-slate-850/50 rounded-2xl p-3 space-y-2 mt-2">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center text-slate-550">Quick Demo Autofill</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('asadalirustam703@gmail.com');
+                      setPassword('password123');
+                    }}
+                    className="py-1.5 px-2 bg-slate-900 border border-slate-800 hover:border-violet-500/35 hover:bg-slate-800 text-[11px] font-semibold text-violet-400 rounded-xl cursor-pointer transition-all"
+                  >
+                    CEO Demo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('asadalirustam70@gmail.com');
+                      setPassword('password123');
+                    }}
+                    className="py-1.5 px-2 bg-slate-900 border border-slate-800 hover:border-indigo-500/35 hover:bg-slate-800 text-[11px] font-semibold text-indigo-400 rounded-xl cursor-pointer transition-all"
+                  >
+                    Admin Demo
+                  </button>
+                </div>
               </div>
 
               <button
@@ -236,6 +278,10 @@ const Login = () => {
           {/* 2. INITIAL CEO REGISTER MODE */}
           {isCEOMode && (
             <form onSubmit={handleCEOSubmit} className="space-y-4">
+              {/* Dummy input elements to intercept browser autofills */}
+              <input type="text" name="chrome_prevent_autofill_email_ceo" style={{ display: 'none' }} autoComplete="username" />
+              <input type="password" name="chrome_prevent_autofill_pass_ceo" style={{ display: 'none' }} autoComplete="new-password" />
+
               <div>
                 <label className="text-xs text-slate-400 font-semibold block mb-1.5">CEO Full Name</label>
                 <div className="relative">
@@ -245,6 +291,7 @@ const Login = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Executive Officer"
+                    autoComplete="off"
                     className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all"
                   />
                 </div>
@@ -259,6 +306,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="ceo@company.com"
+                    autoComplete="off"
                     className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all"
                   />
                 </div>
@@ -269,12 +317,20 @@ const Login = () => {
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
                   <input
-                    type="password"
+                    type={showCeoPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all"
+                    autoComplete="new-password"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-10 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowCeoPassword(!showCeoPassword)}
+                    className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-350 transition-colors"
+                  >
+                    {showCeoPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 

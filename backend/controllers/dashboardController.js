@@ -39,15 +39,30 @@ export const getDashboardStats = async (req, res) => {
     });
 
     // 3. Stock metrics
-    const productsList = await Product.find({}, 'quantity price name');
+    const productsList = await Product.find({}, 'quantity price costPrice name');
     let availableStock = 0;
     let lowStockProducts = 0;
+    let outOfStockProducts = 0;
+    let totalInventoryCost = 0;
+    let inventoryPotentialProfit = 0;
 
     productsList.forEach((prod) => {
       availableStock += prod.quantity;
-      if (prod.quantity <= 5 && prod.quantity > 0) {
+      totalInventoryCost += (prod.costPrice || 0) * prod.quantity;
+      inventoryPotentialProfit += (prod.price - (prod.costPrice || 0)) * prod.quantity;
+      if (prod.quantity === 0) {
+        outOfStockProducts += 1;
+      } else if (prod.quantity <= 5) {
         lowStockProducts += 1;
       }
+    });
+
+    // 4. Total sales profit (realized — using costPrice snapshots in sale items)
+    let totalSalesProfit = 0;
+    allSales.forEach((sale) => {
+      sale.items.forEach((item) => {
+        totalSalesProfit += (item.price - (item.costPrice || 0)) * item.quantity;
+      });
     });
 
     // --- CHART CALCULATIONS ---
@@ -123,6 +138,10 @@ export const getDashboardStats = async (req, res) => {
         totalRevenue,
         availableStock,
         lowStockProducts,
+        outOfStockProducts,
+        totalInventoryCost,
+        inventoryPotentialProfit,
+        totalSalesProfit,
       },
       charts: {
         dailySales: dailySalesData,

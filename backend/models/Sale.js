@@ -19,6 +19,10 @@ const saleItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  costPrice: {
+    type: Number,
+    default: 0, // Snapshot of product cost price at time of sale
+  },
 });
 
 const saleSchema = new mongoose.Schema(
