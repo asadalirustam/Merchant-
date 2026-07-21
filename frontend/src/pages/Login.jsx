@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
 import { Store, Mail, Lock, User, ArrowRight, RefreshCw, KeyRound, Eye, EyeOff } from 'lucide-react';
@@ -9,7 +9,6 @@ const Login = () => {
   const { login, registerCEO, forgotPassword, resetPassword } = useContext(AuthContext);
   const { addToast } = useContext(NotificationContext);
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Mode states
   const [isCEOMode, setIsCEOMode] = useState(false);
@@ -30,19 +29,17 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showCeoPassword, setShowCeoPassword] = useState(false);
 
-  const from = location.state?.from?.pathname || '/pos';
-
   useEffect(() => {
     // Check if system has a CEO. If not, switch to CEO Setup
     const checkCeo = async () => {
       try {
         // We test register CEO with dummy check, or simply hit admins list.
         // If there are no users at all in database, we can auto-detect.
-        const { data } = await API.get('/auth/refresh').catch(err => err.response);
+        await API.get('/auth/refresh').catch(err => err.response);
         // Let's check via a lightweight endpoint or guess. To be simple, we can provide a small setup toggle button or query a custom route.
         // Let's query general public check
-        const response = await API.get('/settings');
-      } catch (err) {
+        await API.get('/settings');
+      } catch {
         // If server indicates no CEO setup, we can toggle CEOMode.
       }
     };

@@ -1,1 +1,0 @@
-// Temporary query helper (completed)

@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import User from './models/User.js';
 import Product from './models/Product.js';
@@ -76,7 +75,7 @@ async function seed() {
 
     // Create CEO account
     console.log('Creating CEO account...');
-    const ceo = await User.create({
+    await User.create({
       name: 'Executive CEO',
       email: 'ceo@shop.com',
       password: 'password123',

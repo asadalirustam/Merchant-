@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import Sidebar from './Sidebar';
@@ -8,6 +8,7 @@ import { ShieldAlert } from 'lucide-react';
 const ProtectedLayout = ({ allowedRoles }) => {
   const { user, loading } = useContext(AuthContext);
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) {
     return (
@@ -49,17 +50,25 @@ const ProtectedLayout = ({ allowedRoles }) => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-      {/* Sidebar - fixed width */}
-      <Sidebar />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex relative overflow-x-hidden">
+      {/* Dark backdrop overlay on mobile when sidebar is open */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-15 lg:hidden"
+        ></div>
+      )}
+
+      {/* Sidebar - fixed width on desktop, drawer on mobile */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main body wrapper */}
-      <div className="flex-1 flex flex-col ml-64 print:ml-0 min-h-screen">
+      <div className="flex-1 flex flex-col ml-0 lg:ml-64 print:ml-0 min-h-screen transition-all duration-300">
         {/* Navbar */}
-        <Navbar />
+        <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
 
         {/* Content area */}
-        <main className="flex-1 p-8 print:p-0 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-8 print:p-0 overflow-y-auto">
           <Outlet />
         </main>
       </div>

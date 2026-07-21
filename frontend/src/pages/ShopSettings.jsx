@@ -8,8 +8,6 @@ import {
   Store,
   KeyRound,
   ShieldCheck,
-  Eye,
-  EyeOff,
   Percent,
 } from 'lucide-react';
 

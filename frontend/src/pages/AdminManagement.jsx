@@ -4,9 +4,7 @@ import { NotificationContext } from '../context/NotificationContext';
 import {
   Users,
   UserPlus,
-  Shield,
   KeyRound,
-  UserX,
   CheckCircle,
   XCircle,
   Edit2,
@@ -44,6 +42,7 @@ const AdminManagement = () => {
         setAdmins(data.data);
       }
     } catch (error) {
+      console.error(error);
       addToast('Error', 'Failed to retrieve Admin accounts list', 'error');
     } finally {
       setLoading(false);
@@ -52,6 +51,7 @@ const AdminManagement = () => {
 
   useEffect(() => {
     fetchAdmins();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCreateSubmit = async (e) => {
@@ -122,6 +122,7 @@ const AdminManagement = () => {
         fetchAdmins();
       }
     } catch (error) {
+      console.error(error);
       addToast('Error', 'Failed to toggle account status', 'error');
     }
   };
@@ -136,6 +137,7 @@ const AdminManagement = () => {
         fetchAdmins();
       }
     } catch (error) {
+      console.error(error);
       addToast('Error', 'Failed to delete Admin', 'error');
     }
   };
@@ -161,6 +163,7 @@ const AdminManagement = () => {
         setAdminLogs(data.data);
       }
     } catch (error) {
+      console.error(error);
       addToast('Error', 'Failed to retrieve admin activity log', 'error');
     } finally {
       setLogsLoading(false);

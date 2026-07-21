@@ -13,9 +13,10 @@ import {
   FileDown,
   LogOut,
   Store,
+  X,
 } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useContext(AuthContext);
   const { settings } = useContext(SettingsContext);
   const navigate = useNavigate();
@@ -89,18 +90,27 @@ const Sidebar = () => {
   );
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-20 no-print">
+    <aside className={`w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-20 no-print transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
       {/* Brand header */}
-      <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800">
-        {settings.logo ? (
-          <img src={`http://localhost:5000${settings.logo}`} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
-        ) : (
-          <Store className="w-7 h-7 text-indigo-500" />
-        )}
-        <div className="overflow-hidden">
-          <h1 className="font-bold text-sm text-slate-100 truncate">{settings.shopName}</h1>
-          <p className="text-[10px] text-slate-400 font-medium tracking-wide truncate">{user?.role} Portal</p>
+      <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+        <div className="flex items-center gap-3 overflow-hidden">
+          {settings.logo ? (
+            <img src={`http://localhost:5000${settings.logo}`} alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+          ) : (
+            <Store className="w-7 h-7 text-indigo-500 shrink-0" />
+          )}
+          <div className="overflow-hidden">
+            <h1 className="font-bold text-sm text-slate-100 truncate">{settings.shopName}</h1>
+            <p className="text-[10px] text-slate-400 font-medium tracking-wide truncate">{user?.role} Portal</p>
+          </div>
         </div>
+        <button
+          onClick={onClose}
+          className="p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800 lg:hidden transition-colors shrink-0 cursor-pointer"
+          title="Close Navigation"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Nav Menu */}
@@ -112,6 +122,7 @@ const Sidebar = () => {
             <NavLink
               key={`${item.path}-${idx}`}
               to={item.path}
+              onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 text-sm rounded-xl font-medium transition-all duration-200 ${
                   isActive
@@ -130,7 +141,10 @@ const Sidebar = () => {
       {/* User profile segment */}
       <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex flex-col gap-3">
         <div
-          onClick={() => navigate('/profile')}
+          onClick={() => {
+            onClose();
+            navigate('/profile');
+          }}
           className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-800/40 rounded-xl cursor-pointer transition-colors"
           title="View Profile Dashboard"
         >
@@ -148,7 +162,7 @@ const Sidebar = () => {
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-800/80 hover:bg-rose-950/40 text-slate-300 hover:text-rose-300 border border-slate-700/50 hover:border-rose-900/55 text-xs rounded-xl font-medium transition-all duration-200"
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-800/80 hover:bg-rose-950/40 text-slate-300 hover:text-rose-300 border border-slate-700/50 hover:border-rose-900/55 text-xs rounded-xl font-medium transition-all duration-200 cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
           <span>Sign Out</span>

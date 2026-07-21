@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect } from 'react';
 import API from '../utils/api';
 
@@ -51,7 +52,6 @@ export const SettingsProvider = ({ children }) => {
 
   const updateSettings = async (formData) => {
     try {
-      const token = localStorage.getItem('accessToken');
       // Use standard multipart/form-data for image file upload
       const { data } = await API.put('/settings', formData, {
         headers: {

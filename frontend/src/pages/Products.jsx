@@ -50,7 +50,7 @@ const Products = () => {
 
   // Pagination
   const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
+  const [_pages, setPages] = useState(1);
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,6 +89,7 @@ const Products = () => {
         setPages(data.data.pages);
       }
     } catch (error) {
+      console.error(error);
       addToast('Error', 'Failed to retrieve products', 'error');
     } finally {
       setLoading(false);
@@ -97,6 +98,7 @@ const Products = () => {
 
   useEffect(() => {
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, categoryFilter, stockStatus]);
 
   const handleSearchSubmit = (e) => {
@@ -209,6 +211,7 @@ const Products = () => {
         fetchProducts();
       }
     } catch (err) {
+      console.error(err);
       addToast('Error', 'Failed to delete product', 'error');
     }
   };
@@ -227,7 +230,7 @@ const Products = () => {
         if (state === 2 || state === 3) {
           await html5QrCodeRef.current.stop();
         }
-      } catch (_) {
+      } catch {
         // ignore errors during stop
       }
       html5QrCodeRef.current = null;
@@ -315,12 +318,12 @@ const Products = () => {
     setIsModalOpen(true);
   };
 
-  const handleScannerFoundEdit = (prod) => {
+  const _handleScannerFoundEdit = (prod) => {
     setIsScannerOpen(false);
     openEditModal(prod);
   };
 
-  const handleScannerFoundAdd = (prod) => {
+  const _handleScannerFoundAdd = (prod) => {
     // Product already exists — just close scanner, product is already in list
     setIsScannerOpen(false);
     addToast('Info', `Product "${prod.name}" already exists in catalog`, 'info');

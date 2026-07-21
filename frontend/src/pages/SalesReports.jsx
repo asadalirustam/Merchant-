@@ -12,7 +12,6 @@ import {
   Award,
   TrendingDown,
   Printer,
-  Download,
   Activity,
 } from 'lucide-react';
 
@@ -56,6 +55,7 @@ const SalesReports = () => {
         setSales(data.data);
       }
     } catch (error) {
+      console.error(error);
       addToast('Error', 'Failed to retrieve sales logs', 'error');
     } finally {
       setLoading(false);
@@ -67,6 +67,7 @@ const SalesReports = () => {
     if (!location.state) {
       fetchSalesData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Watch for location state transitions to auto-apply filters and refetch
@@ -89,6 +90,7 @@ const SalesReports = () => {
         .catch(() => {})
         .finally(() => setLoading(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
   const handleFilterSubmit = (e) => {

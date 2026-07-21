@@ -2,9 +2,9 @@ import { useContext, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
 import { SettingsContext } from '../context/SettingsContext';
-import { Bell, Moon, Sun, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Bell, Moon, Sun, ShieldCheck, AlertTriangle, Menu } from 'lucide-react';
 
-const Navbar = () => {
+const Navbar = ({ onToggleSidebar }) => {
   const { user } = useContext(AuthContext);
   const { notifications, clearNotifications } = useContext(NotificationContext);
   const { theme, setTheme } = useContext(SettingsContext);
@@ -25,9 +25,16 @@ const Navbar = () => {
   };
 
   return (
-    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-8 sticky top-0 z-10 no-print">
+    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-10 no-print">
       <div className="flex items-center gap-4">
-        <h2 className="text-lg font-bold text-slate-100">
+        <button
+          onClick={onToggleSidebar}
+          className="p-2 text-slate-400 hover:text-slate-200 rounded-xl hover:bg-slate-800 lg:hidden transition-colors cursor-pointer shrink-0"
+          title="Toggle Navigation Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <h2 className="text-sm sm:text-lg font-bold text-slate-100 hidden sm:block truncate">
           Welcome back, <span className="text-indigo-400 font-semibold">{user?.name}</span>
         </h2>
       </div>

@@ -203,7 +203,7 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     console.log(`\n======================================================`);
-    console.log(`[PASSWORD RESET CODE] for $\{email\}: $\{resetCode\}`);
+    console.log(`[PASSWORD RESET CODE] for \${email}: \${resetCode}`);
     console.log(`======================================================\n`);
 
     return sendSuccess(res, 'Password reset code generated successfully', { resetCode });

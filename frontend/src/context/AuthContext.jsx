@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect } from 'react';
 import API from '../utils/api';
 
@@ -16,14 +17,14 @@ export const AuthProvider = ({ children }) => {
       if (storedUser && token) {
         try {
           setUser(JSON.parse(storedUser));
-        } catch (e) {
+        } catch {
           localStorage.removeItem('user');
         }
       }
 
       // Check if CEO accounts exist in the DB to decide if we route to setup or login
       try {
-        const { data } = await API.get('/settings'); // Shop settings check
+        await API.get('/settings'); // Shop settings check
         // Or we check CEO existence directly via settings/auth. Let's make settings return CEO status or check settings endpoint.
         // If the settings route fails due to 401 but database is empty, the server wouldn't block. Let's check status.
       } catch (err) {
@@ -36,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email, password, rememberMe) => {
+  const login = async (email, password, _rememberMe) => {
     try {
       const { data } = await API.post('/auth/login', { email, password });
       if (data.success) {
