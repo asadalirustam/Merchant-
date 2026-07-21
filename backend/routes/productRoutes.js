@@ -20,11 +20,12 @@ router.route('/')
   .get(getProducts)
   .post(upload.single('productImage'), createProduct);
 
+router.get('/info/:idOrCode', getProductById);
+
 router.route('/:id')
   .put(upload.single('productImage'), updateProduct)
   .delete(deleteProduct);
 
-router.get('/info/:idOrCode', getProductById);
 router.patch('/:id/adjust', adjustProduct);
 
 export default router;

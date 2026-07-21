@@ -93,6 +93,7 @@ export const createProduct = async (req, res) => {
     productCode,
     category,
     price,
+    costPrice,
     quantity,
     description,
   } = req.body;
@@ -119,6 +120,7 @@ export const createProduct = async (req, res) => {
       productCode,
       category,
       price,
+      costPrice: costPrice !== undefined ? Number(costPrice) : 0,
       quantity: quantity || 0,
       productImage,
       description,
@@ -160,6 +162,7 @@ export const updateProduct = async (req, res) => {
     productCode,
     category,
     price,
+    costPrice,
     quantity,
     description,
   } = req.body;
@@ -173,6 +176,7 @@ export const updateProduct = async (req, res) => {
     if (name) product.name = name;
     if (category) product.category = category;
     if (description !== undefined) product.description = description;
+    if (costPrice !== undefined) product.costPrice = Number(costPrice);
 
     let priceChanged = false;
     if (price !== undefined) {
@@ -252,7 +256,7 @@ export const adjustProduct = async (req, res) => {
     return sendError(res, 'Access Denied: CEOs do not have permissions to adjust product data.', null, 403);
   }
 
-  const { quantity, price } = req.body;
+  const { quantity, price, costPrice } = req.body;
 
   try {
     const product = await Product.findById(req.params.id);
@@ -273,6 +277,11 @@ export const adjustProduct = async (req, res) => {
       product.price = Number(price);
       activityDetails.push(`price adjusted from ${oldPrice} to ${product.price}`);
       await logActivity(req.user._id, 'Price Changed', `Admin adjusted price of ${product.name} to ${product.price}`, req);
+    }
+
+    if (costPrice !== undefined) {
+      product.costPrice = Number(costPrice);
+      activityDetails.push(`cost price adjusted to ${product.costPrice}`);
     }
 
     await product.save();
