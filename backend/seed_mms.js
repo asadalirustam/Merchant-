@@ -77,23 +77,23 @@ async function seed() {
     console.log('Creating CEO account...');
     await User.create({
       name: 'Executive CEO',
-      email: 'ceo@shop.com',
-      password: 'password123',
+      email: 'asadalirustam703@gmail.com',
+      password: 'Asadali456',
       role: 'CEO',
       status: 'Enabled'
     });
-    console.log(`CEO account created: ceo@shop.com / password123`);
+    console.log(`CEO account created: asadalirustam703@gmail.com / Asadali456`);
 
     // Create Admin account
     console.log('Creating Admin account...');
     const admin = await User.create({
       name: 'Cashier Admin',
-      email: 'admin@shop.com',
-      password: 'password123',
+      email: 'asadalirustam70@gmail.com',
+      password: 'asadali456',
       role: 'Admin',
       status: 'Enabled'
     });
-    console.log(`Admin account created: admin@shop.com / password123`);
+    console.log(`Admin account created: asadalirustam70@gmail.com / asadali456`);
 
     // Seed 20 products
     console.log('Seeding 20 demo products...');

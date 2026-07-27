@@ -139,14 +139,14 @@ const Login = () => {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pulse-slow"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pulse-slow" style={{ animationDelay: '1.5s' }}></div>
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-md">
+      <div className="w-full max-w-md relative z-10 px-3 sm:px-0">
+        <div className="login-card bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl backdrop-blur-md transition-all">
           {/* Header Logo */}
-          <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
-              <Store className="w-8 h-8" />
+          <div className="flex flex-col items-center text-center mb-6 sm:mb-8">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-3 sm:mb-4 shadow-inner">
+              <Store className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-indigo-200 via-slate-100 to-indigo-200 bg-clip-text text-transparent">
+            <h1 className="login-title text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-indigo-200 via-slate-100 to-indigo-200 bg-clip-text text-transparent">
               {isCEOMode ? 'Initialize CEO Setup' : 'Enterprise Merchant ERP'}
             </h1>
             <p className="text-xs text-slate-400 mt-2 max-w-[280px]">
@@ -173,7 +173,11 @@ const Login = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@company.com"
                     autoComplete="off"
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    inputMode="email"
+                    className="login-input w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all fast-tap"
                   />
                 </div>
               </div>
@@ -187,7 +191,7 @@ const Login = () => {
                       setIsForgotPasswordMode(true);
                       setIsResetConfirmMode(false);
                     }}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium fast-tap"
                   >
                     Forgot password?
                   </button>
@@ -199,13 +203,16 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    autoComplete="new-password"
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-10 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all"
+                    autoComplete="current-password"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    className="login-input w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 rounded-xl py-2.5 pl-10 pr-10 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all fast-tap"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-350 transition-colors"
+                    className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-350 transition-colors fast-tap"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -213,7 +220,7 @@ const Login = () => {
               </div>
 
               <div className="flex items-center justify-between py-1">
-                <label className="flex items-center gap-2 text-xs text-slate-400 select-none cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-slate-400 select-none cursor-pointer fast-tap">
                   <input
                     type="checkbox"
                     checked={rememberMe}
@@ -225,28 +232,48 @@ const Login = () => {
               </div>
 
               {/* Quick Demo Autofill Accounts */}
-              <div className="bg-slate-950/60 border border-slate-850/50 rounded-2xl p-3 space-y-2 mt-2">
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center text-slate-550">Quick Demo Autofill</p>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3 sm:p-3.5 space-y-2.5 mt-2 fast-tap">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-bold uppercase tracking-wider">Quick Demo Autofill</p>
+                  <span className="text-[9px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Click to fill credentials</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 quick-demo-grid">
                   <button
                     type="button"
                     onClick={() => {
                       setEmail('asadalirustam703@gmail.com');
-                      setPassword('password123');
+                      setPassword('Asadali456');
                     }}
-                    className="py-1.5 px-2 bg-slate-900 border border-slate-800 hover:border-violet-500/35 hover:bg-slate-800 text-[11px] font-semibold text-violet-400 rounded-xl cursor-pointer transition-all"
+                    className="quick-demo-btn py-2 px-2.5 bg-slate-900 border border-slate-800 hover:border-violet-500/50 hover:bg-slate-800/80 active:scale-[0.98] text-xs font-semibold text-violet-400 rounded-xl cursor-pointer transition-all flex flex-col items-start gap-0.5 shadow-sm fast-tap group text-left w-full"
                   >
-                    CEO Demo
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-bold text-violet-400">CEO Demo</span>
+                      <span className="text-[9px] bg-violet-500/20 text-violet-300 px-1.5 py-0.2 rounded font-mono">CEO</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono w-full truncate">asadalirustam703@gmail.com</div>
+                    <div className="text-[10px] text-slate-300 font-mono flex items-center gap-1 mt-0.5">
+                      <KeyRound className="w-3 h-3 text-violet-400 shrink-0" />
+                      <span>Password: <strong className="text-violet-300 font-bold select-all">Asadali456</strong></span>
+                    </div>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => {
                       setEmail('asadalirustam70@gmail.com');
-                      setPassword('password123');
+                      setPassword('asadali456');
                     }}
-                    className="py-1.5 px-2 bg-slate-900 border border-slate-800 hover:border-indigo-500/35 hover:bg-slate-800 text-[11px] font-semibold text-indigo-400 rounded-xl cursor-pointer transition-all"
+                    className="quick-demo-btn py-2 px-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80 active:scale-[0.98] text-xs font-semibold text-indigo-400 rounded-xl cursor-pointer transition-all flex flex-col items-start gap-0.5 shadow-sm fast-tap group text-left w-full"
                   >
-                    Admin Demo
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-bold text-indigo-400">Admin Demo</span>
+                      <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 rounded font-mono">Admin</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono w-full truncate">asadalirustam70@gmail.com</div>
+                    <div className="text-[10px] text-slate-300 font-mono flex items-center gap-1 mt-0.5">
+                      <KeyRound className="w-3 h-3 text-indigo-400 shrink-0" />
+                      <span>Password: <strong className="text-indigo-300 font-bold select-all">asadali456</strong></span>
+                    </div>
                   </button>
                 </div>
               </div>
@@ -254,7 +281,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 border border-indigo-500/30 transition-all cursor-pointer disabled:opacity-50"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 border border-indigo-500/30 transition-all cursor-pointer disabled:opacity-50 fast-tap"
               >
                 {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Access ERP'}
                 <ArrowRight className="w-4 h-4" />
@@ -264,7 +291,7 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setIsCEOMode(true)}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium fast-tap"
                 >
                   New ERP system setup? Initialize CEO
                 </button>

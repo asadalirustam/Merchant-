@@ -101,3 +101,44 @@ html.dark {
     margin: 0 !important;
   }
 }
+
+/* ==========================================
+   Responsive Media Queries & Touch Acceleration
+   ========================================== */
+.fast-tap {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+@media screen and (max-width: 640px) {
+  .login-card {
+    padding: 1.25rem !important;
+    border-radius: 1.25rem !important;
+  }
+  .quick-demo-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .login-input {
+    font-size: 14px !important;
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+  }
+}
+
+@media screen and (min-width: 641px) and (max-width: 1024px) {
+  .login-card {
+    padding: 1.75rem !important;
+  }
+}
+
+@media screen and (max-width: 380px) {
+  .login-title {
+    font-size: 1.25rem !important;
+  }
+  .quick-demo-btn {
+    padding: 0.5rem !important;
+  }
+}
+
