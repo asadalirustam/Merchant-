@@ -102,17 +102,113 @@ html.dark {
   }
 }
 
-/* ==========================================
-   Responsive Media Queries & Touch Acceleration
-   ========================================== */
+/* ==========================================================================
+   Responsive Media Queries, Touch Acceleration & High-Performance CSS
+   ========================================================================== */
+
+/* 1. Touch & GPU Acceleration Utilities (Ultra-fast responsiveness) */
 .fast-tap {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   will-change: transform, opacity;
   transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
+.fast-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+.gpu-accelerated {
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Fast rendering optimization for data tables & long lists */
+.render-fast {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 50px;
+}
+
+/* Touch Target Sizes for Responsive Touch Display Interactivity */
+@media (pointer: coarse) {
+  button, 
+  input[type="button"], 
+  input[type="submit"], 
+  .touch-target {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+}
+
+/* Desktop Only Hover Isolation (Prevents sticky touch state on touchscreens) */
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Disable heavy motion on low-power hardware or accessibility mode */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 2. Responsive Table & Grid Utilities */
+.responsive-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0.75rem;
+}
+
+.responsive-table-container::-webkit-scrollbar {
+  height: 5px;
+}
+
+.responsive-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* 3. Comprehensive Device Breakpoint Media Queries */
+
+/* --- Extra Small Devices & Small Mobile Phones (max-width: 380px) --- */
+@media screen and (max-width: 380px) {
+  .login-title {
+    font-size: 1.15rem !important;
+  }
+  .quick-demo-btn {
+    padding: 0.45rem 0.65rem !important;
+    font-size: 11px !important;
+  }
+  .stat-card-title {
+    font-size: 0.75rem !important;
+  }
+  .stat-card-value {
+    font-size: 1.15rem !important;
+  }
+  .modal-content-box {
+    padding: 1rem !important;
+    border-radius: 1rem !important;
+  }
+}
+
+/* --- Mobile Devices (max-width: 640px) --- */
 @media screen and (max-width: 640px) {
+  /* Login & Card spacing */
   .login-card {
     padding: 1.25rem !important;
     border-radius: 1.25rem !important;
@@ -125,20 +221,68 @@ html.dark {
     padding-top: 0.65rem !important;
     padding-bottom: 0.65rem !important;
   }
+
+  /* Form & Toolbar responsive stacking */
+  .responsive-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+  .responsive-toolbar > * {
+    width: 100% !important;
+  }
+
+  /* Dashboard Cards Grid Override */
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Responsive Modal Dialogs */
+  .responsive-modal-dialog {
+    width: 95vw !important;
+    max-width: 100% !important;
+    margin: 0.5rem !important;
+    max-height: 90vh !important;
+  }
+
+  /* Recharts responsiveness */
+  .recharts-wrapper {
+    width: 100% !important;
+    font-size: 10px !important;
+  }
 }
 
+/* --- Tablets & Small Laptops (min-width: 641px) and (max-width: 1024px) --- */
 @media screen and (min-width: 641px) and (max-width: 1024px) {
   .login-card {
     padding: 1.75rem !important;
   }
+
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+
+  .pos-terminal-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
-@media screen and (max-width: 380px) {
-  .login-title {
-    font-size: 1.25rem !important;
-  }
-  .quick-demo-btn {
-    padding: 0.5rem !important;
+/* --- Desktop Screens (min-width: 1025px) and (max-width: 1440px) --- */
+@media screen and (min-width: 1025px) and (max-width: 1440px) {
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
   }
 }
+
+/* --- Ultra-Wide Desktop Screens (min-width: 1441px) --- */
+@media screen and (min-width: 1441px) {
+  .main-content-container {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
 

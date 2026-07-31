@@ -296,9 +296,9 @@ const POSBilling = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[calc(100vh-6rem)] overflow-hidden">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-auto xl:h-[calc(100vh-6rem)] overflow-y-auto xl:overflow-hidden pb-6 xl:pb-0">
       {/* 1. PRODUCT DIRECTORY & SCAN PANEL */}
-      <div className="xl:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col h-full overflow-hidden">
+      <div className="xl:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col h-auto min-h-[420px] xl:h-full overflow-hidden">
         {/* Scan Header */}
         <div className="space-y-4 mb-4">
           <div className="flex items-center gap-2">
@@ -356,7 +356,7 @@ const POSBilling = () => {
       </div>
 
       {/* 2. CHECKOUT CART PANEL */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col h-full overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col h-auto min-h-[420px] xl:h-full overflow-hidden">
         <h3 className="font-bold text-sm text-slate-200 pb-3 border-b border-slate-850 mb-4 flex justify-between items-center">
           <span>Checkout Invoice Details</span>
           <span className="bg-indigo-950 border border-indigo-900/50 text-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
