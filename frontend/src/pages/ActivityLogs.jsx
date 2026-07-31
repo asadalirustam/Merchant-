@@ -106,7 +106,51 @@ const ActivityLogs = () => {
           <div className="p-12 text-center text-slate-500 text-sm">No activity logs matching parameters.</div>
         ) : (
           <div>
-            <div className="overflow-x-auto">
+            {/* Mobile Cards View (< 640px) */}
+            <div className="block sm:hidden p-3 space-y-3">
+              {logs.map((log) => (
+                <div
+                  key={log._id}
+                  className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5"
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-850 pb-2">
+                    <span className={`inline-flex px-2 py-0.5 rounded border text-[9px] font-bold ${getActionBadgeClass(log.action)}`}>
+                      {log.action}
+                    </span>
+                    <span className="text-slate-500 font-mono text-[9px]">
+                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] text-slate-500 uppercase font-bold">Operator</span>
+                      <span className="font-semibold text-slate-200 text-right">
+                        {log.user ? `${log.user.name} (${log.user.role})` : 'System Auto'}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-[9px] text-slate-500 uppercase font-bold">Date</span>
+                      <span className="text-slate-400 font-mono">{new Date(log.timestamp).toLocaleDateString()}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-[9px] text-slate-500 uppercase font-bold">IP Address</span>
+                      <span className="text-slate-400 font-mono">{log.ipAddress}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-850 text-[11px] text-slate-300 flex items-start gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
+                    <p className="break-words">{log.details}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= 640px) */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-850 bg-slate-950 text-slate-400 font-semibold">

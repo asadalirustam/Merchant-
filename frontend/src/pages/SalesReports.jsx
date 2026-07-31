@@ -242,17 +242,17 @@ const SalesReports = () => {
           </h1>
           <p className="text-slate-400 text-xs mt-0.5">CEO workspace for auditing gross turnovers, checkout timelines, best selling items, and cashier outputs.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={handleExportCSV}
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md"
+            className="w-full sm:w-auto px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md"
           >
             <Download className="w-4 h-4 text-emerald-450" />
             Export CSV
           </button>
           <button
             onClick={handlePrintPDF}
-            className="px-4 py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-lg"
+            className="w-full sm:w-auto px-4 py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg"
           >
             <Printer className="w-4 h-4" />
             Print Ledger / PDF
@@ -261,82 +261,84 @@ const SalesReports = () => {
       </div>
 
       {/* Filter Row Form */}
-      <form onSubmit={handleFilterSubmit} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-wrap gap-4 items-end no-print">
-        <div className="flex-1 min-w-[150px] space-y-1">
-          <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Start Date</label>
-          <div className="relative">
-            <Calendar className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
-            />
+      <form onSubmit={handleFilterSubmit} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 no-print">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="space-y-1">
+            <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Start Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">End Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Cashier Admin</label>
+            <div className="relative">
+              <Users className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
+              <select
+                value={selectedAdmin}
+                onChange={(e) => setSelectedAdmin(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
+              >
+                <option value="">All Cashiers</option>
+                {admins.map((adm) => (
+                  <option key={adm._id} value={adm._id}>
+                    {adm.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Product Item</label>
+            <div className="relative">
+              <Package className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
+              <select
+                value={selectedProduct}
+                onChange={(e) => setSelectedProduct(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
+              >
+                <option value="">All Products</option>
+                {products.map((prod) => (
+                  <option key={prod._id} value={prod._id}>
+                    {prod.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 min-w-[150px] space-y-1">
-          <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">End Date</label>
-          <div className="relative">
-            <Calendar className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-[150px] space-y-1">
-          <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Cashier Admin</label>
-          <div className="relative">
-            <Users className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
-            <select
-              value={selectedAdmin}
-              onChange={(e) => setSelectedAdmin(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
-            >
-              <option value="">All Cashiers</option>
-              {admins.map((adm) => (
-                <option key={adm._id} value={adm._id}>
-                  {adm.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-[150px] space-y-1">
-          <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Product Item</label>
-          <div className="relative">
-            <Package className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
-            <select
-              value={selectedProduct}
-              onChange={(e) => setSelectedProduct(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
-            >
-              <option value="">All Products</option>
-              {products.map((prod) => (
-                <option key={prod._id} value={prod._id}>
-                  {prod.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-1 border-t border-slate-850">
           <button
             type="button"
             onClick={handleClearFilters}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-350 rounded-xl text-xs font-semibold cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-350 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
           >
-            Clear
+            Clear Filters
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-md"
           >
             Filter Report
           </button>
@@ -503,35 +505,77 @@ const SalesReports = () => {
         ) : sales.length === 0 ? (
           <div className="p-12 text-center text-slate-500 text-sm">No transaction matches selection filters.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-850 bg-slate-950 text-slate-400 font-semibold">
-                  <th className="py-3 px-6">Invoice</th>
-                  <th className="py-3 px-6">Date</th>
-                  <th className="py-3 px-6">Customer</th>
-                  <th className="py-3 px-6">Cashier</th>
-                  <th className="py-3 px-6">Method</th>
-                  <th className="py-3 px-6 text-right">Revenue</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/40">
-                {sales.map((sale) => (
-                  <tr key={sale._id} className="hover:bg-slate-800/10">
-                    <td className="py-4 px-6 font-bold text-slate-200 font-mono text-[10px]">{sale.invoiceNumber}</td>
-                    <td className="py-4 px-6 text-slate-550 font-mono text-[10px]">{new Date(sale.date).toLocaleDateString()}</td>
-                    <td className="py-4 px-6 font-medium text-slate-400">{sale.customerName}</td>
-                    <td className="py-4 px-6 text-slate-400 font-semibold">{sale.cashier?.name || 'System'}</td>
-                    <td className="py-4 px-6 text-slate-400 font-medium">{sale.paymentMethod}</td>
-                    <td className="py-4 px-6 text-right font-black text-emerald-450">
+          <>
+            {/* Mobile Cards View (< 640px) */}
+            <div className="block sm:hidden p-3 space-y-3 print:hidden">
+              {sales.map((sale) => (
+                <div
+                  key={sale._id}
+                  className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5"
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-850 pb-2">
+                    <span className="font-bold text-slate-200 font-mono text-xs bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                      {sale.invoiceNumber}
+                    </span>
+                    <span className="font-black text-emerald-450 text-sm">
                       {currencySymbol}
                       {sale.grandTotal.toFixed(2)}
-                    </td>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <span className="text-[9px] text-slate-500 block uppercase font-bold">Customer</span>
+                      <span className="font-semibold text-slate-300 truncate block">{sale.customerName}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-500 block uppercase font-bold">Cashier</span>
+                      <span className="text-slate-400 truncate block">{sale.cashier?.name || 'System'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-500 block uppercase font-bold">Method</span>
+                      <span className="text-slate-400 font-medium">{sale.paymentMethod}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-500 block uppercase font-bold">Date</span>
+                      <span className="text-slate-400 font-mono text-[10px]">{new Date(sale.date).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= 640px) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-850 bg-slate-950 text-slate-400 font-semibold">
+                    <th className="py-3 px-6">Invoice</th>
+                    <th className="py-3 px-6">Date</th>
+                    <th className="py-3 px-6">Customer</th>
+                    <th className="py-3 px-6">Cashier</th>
+                    <th className="py-3 px-6">Method</th>
+                    <th className="py-3 px-6 text-right">Revenue</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-800/40">
+                  {sales.map((sale) => (
+                    <tr key={sale._id} className="hover:bg-slate-800/10">
+                      <td className="py-4 px-6 font-bold text-slate-200 font-mono text-[10px]">{sale.invoiceNumber}</td>
+                      <td className="py-4 px-6 text-slate-550 font-mono text-[10px]">{new Date(sale.date).toLocaleDateString()}</td>
+                      <td className="py-4 px-6 font-medium text-slate-400">{sale.customerName}</td>
+                      <td className="py-4 px-6 text-slate-400 font-semibold">{sale.cashier?.name || 'System'}</td>
+                      <td className="py-4 px-6 text-slate-400 font-medium">{sale.paymentMethod}</td>
+                      <td className="py-4 px-6 text-right font-black text-emerald-450">
+                        {currencySymbol}
+                        {sale.grandTotal.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

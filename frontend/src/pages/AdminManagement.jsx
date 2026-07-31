@@ -188,92 +188,166 @@ const AdminManagement = () => {
             setPassword('');
             setIsCreateModalOpen(true);
           }}
-          className="px-4 py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-lg"
+          className="w-full sm:w-auto px-4 py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg"
         >
           <UserPlus className="w-4 h-4" />
           Add Admin Account
         </button>
       </div>
 
-      {/* Admin Table Card */}
+      {/* Admin Table / Cards Container */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-slate-500 text-sm">Loading admin list...</div>
         ) : admins.length === 0 ? (
           <div className="p-12 text-center text-slate-500 text-sm">No Admin users registered yet.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-850 bg-slate-950 text-slate-400 font-semibold">
-                  <th className="py-3 px-6">Name</th>
-                  <th className="py-3 px-6">Email Address</th>
-                  <th className="py-3 px-6">Status</th>
-                  <th className="py-3 px-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/40">
-                {admins.map((admin) => (
-                  <tr key={admin._id} className="hover:bg-slate-800/10">
-                    <td className="py-4 px-6 font-bold text-slate-200">{admin.name}</td>
-                    <td className="py-4 px-6 text-slate-400 font-medium">{admin.email}</td>
-                    <td className="py-4 px-6">
-                      <button
-                        onClick={() => handleToggleStatus(admin._id)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
-                          admin.status === 'Enabled'
-                            ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50 hover:bg-emerald-900/40'
-                            : 'bg-rose-950/60 text-rose-300 border-rose-800/50 hover:bg-rose-900/40'
-                        }`}
-                      >
-                        {admin.status === 'Enabled' ? (
-                          <>
-                            <CheckCircle className="w-3 h-3 shrink-0" />
-                            Enabled
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="w-3 h-3 shrink-0" />
-                            Disabled
-                          </>
-                        )}
-                      </button>
-                    </td>
-                    <td className="py-4 px-6 text-right space-x-2">
-                      <button
-                        onClick={() => openActivityModal(admin)}
-                        className="px-2 py-1 bg-slate-950 border border-slate-850 hover:bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        <History className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        Activity Logs
-                      </button>
+          <>
+            {/* Mobile Cards View (< 640px) */}
+            <div className="block sm:hidden p-3 space-y-3">
+              {admins.map((admin) => (
+                <div
+                  key={admin._id}
+                  className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-850 pb-2">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-200">{admin.name}</h4>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">{admin.email}</p>
+                    </div>
+                    <button
+                      onClick={() => handleToggleStatus(admin._id)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
+                        admin.status === 'Enabled'
+                          ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50 hover:bg-emerald-900/40'
+                          : 'bg-rose-950/60 text-rose-300 border-rose-800/50 hover:bg-rose-900/40'
+                      }`}
+                    >
+                      {admin.status === 'Enabled' ? (
+                        <>
+                          <CheckCircle className="w-3 h-3 shrink-0" />
+                          Enabled
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-3 h-3 shrink-0" />
+                          Disabled
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <button
+                      onClick={() => openActivityModal(admin)}
+                      className="px-3 py-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <History className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      Activity Logs
+                    </button>
+
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => openResetModal(admin)}
-                        className="p-1.5 text-slate-400 hover:text-amber-450 hover:bg-slate-850 rounded-xl transition-all"
+                        className="p-2 text-slate-400 hover:text-amber-450 bg-slate-900 border border-slate-800 rounded-lg transition-all"
                         title="Reset password"
                       >
                         <KeyRound className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => openEditModal(admin)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-slate-850 rounded-xl transition-all"
+                        className="p-2 text-slate-400 hover:text-indigo-400 bg-slate-900 border border-slate-800 rounded-lg transition-all"
                         title="Edit Admin details"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(admin._id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-850 rounded-xl transition-all"
+                        className="p-2 text-slate-400 hover:text-rose-400 bg-slate-900 border border-slate-800 rounded-lg transition-all"
                         title="Delete Admin"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </td>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= 640px) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-850 bg-slate-950 text-slate-400 font-semibold">
+                    <th className="py-3 px-6">Name</th>
+                    <th className="py-3 px-6">Email Address</th>
+                    <th className="py-3 px-6">Status</th>
+                    <th className="py-3 px-6 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-800/40">
+                  {admins.map((admin) => (
+                    <tr key={admin._id} className="hover:bg-slate-800/10">
+                      <td className="py-4 px-6 font-bold text-slate-200">{admin.name}</td>
+                      <td className="py-4 px-6 text-slate-400 font-medium">{admin.email}</td>
+                      <td className="py-4 px-6">
+                        <button
+                          onClick={() => handleToggleStatus(admin._id)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
+                            admin.status === 'Enabled'
+                              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50 hover:bg-emerald-900/40'
+                              : 'bg-rose-950/60 text-rose-300 border-rose-800/50 hover:bg-rose-900/40'
+                          }`}
+                        >
+                          {admin.status === 'Enabled' ? (
+                            <>
+                              <CheckCircle className="w-3 h-3 shrink-0" />
+                              Enabled
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3 h-3 shrink-0" />
+                              Disabled
+                            </>
+                          )}
+                        </button>
+                      </td>
+                      <td className="py-4 px-6 text-right space-x-2">
+                        <button
+                          onClick={() => openActivityModal(admin)}
+                          className="px-2 py-1 bg-slate-950 border border-slate-850 hover:bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <History className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          Activity Logs
+                        </button>
+                        <button
+                          onClick={() => openResetModal(admin)}
+                          className="p-1.5 text-slate-400 hover:text-amber-450 hover:bg-slate-850 rounded-xl transition-all"
+                          title="Reset password"
+                        >
+                          <KeyRound className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => openEditModal(admin)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-slate-850 rounded-xl transition-all"
+                          title="Edit Admin details"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(admin._id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-850 rounded-xl transition-all"
+                          title="Delete Admin"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
