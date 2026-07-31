@@ -362,139 +362,189 @@ const InvoiceHistory = () => {
       </div>
 
       {/* Filter Row Form */}
-      <form onSubmit={handleFilterSubmit} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-wrap gap-4 items-end">
-        <div className="flex-1 min-w-[160px] space-y-1">
-          <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Invoice Code</label>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
-            <input
-              type="text"
-              value={searchInvoice}
-              onChange={(e) => setSearchInvoice(e.target.value)}
-              placeholder="e.g. INV-12345"
-              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-100 outline-none"
-            />
+      <form onSubmit={handleFilterSubmit} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="space-y-1">
+            <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Invoice Code</label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
+              <input
+                type="text"
+                value={searchInvoice}
+                onChange={(e) => setSearchInvoice(e.target.value)}
+                placeholder="e.g. INV-12345"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-100 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Product Name</label>
+            <div className="relative">
+              <ShoppingBag className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
+              <input
+                type="text"
+                value={searchProduct}
+                onChange={(e) => setSearchProduct(e.target.value)}
+                placeholder="e.g. Keyboard"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-100 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Customer Name</label>
+            <div className="relative">
+              <User className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
+              <input
+                type="text"
+                value={searchCustomer}
+                onChange={(e) => setSearchCustomer(e.target.value)}
+                placeholder="e.g. John"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-100 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Specific Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
+              <input
+                type="date"
+                value={searchDate}
+                onChange={(e) => setSearchDate(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 min-w-[160px] space-y-1">
-          <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Product Name</label>
-          <div className="relative">
-            <ShoppingBag className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
-            <input
-              type="text"
-              value={searchProduct}
-              onChange={(e) => setSearchProduct(e.target.value)}
-              placeholder="e.g. Keyboard"
-              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-100 outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-[160px] space-y-1">
-          <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Customer Name</label>
-          <div className="relative">
-            <User className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
-            <input
-              type="text"
-              value={searchCustomer}
-              onChange={(e) => setSearchCustomer(e.target.value)}
-              placeholder="e.g. John"
-              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-100 outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-[160px] space-y-1">
-          <label className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Specific Date</label>
-          <div className="relative">
-            <Calendar className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500" />
-            <input
-              type="date"
-              value={searchDate}
-              onChange={(e) => setSearchDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2 pl-8 text-xs text-slate-200 outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-1 border-t border-slate-850">
           <button
             type="button"
             onClick={handleClearFilters}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-350 rounded-xl text-xs font-semibold cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-350 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
           >
-            Clear
+            Clear Filters
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-md"
           >
             Search Logs
           </button>
         </div>
       </form>
 
-      {/* Invoices List Table */}
+      {/* Invoices List Display */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-slate-500 text-sm">Searching invoices database...</div>
         ) : invoices.length === 0 ? (
           <div className="p-12 text-center text-slate-500 text-sm">No invoice matching search filters was logged.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-850 bg-slate-950 text-slate-400 font-semibold">
-                  <th className="py-3 px-6">Invoice Code</th>
-                  <th className="py-3 px-6">Billing Date</th>
-                  <th className="py-3 px-6">Customer Name</th>
-                  <th className="py-3 px-6">Cashier Name</th>
-                  <th className="py-3 px-6">Total Amount</th>
-                  <th className="py-3 px-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/40">
-                {invoices.map((inv) => (
-                  <tr key={inv._id} className="hover:bg-slate-800/10">
-                    <td className="py-4 px-6 font-bold text-slate-200 font-mono text-[10px]">{inv.invoiceNumber}</td>
-                    <td className="py-4 px-6 text-slate-400 font-mono text-[10px]">{new Date(inv.date).toLocaleString()}</td>
-                    <td className="py-4 px-6 font-semibold text-slate-300">{inv.customerName}</td>
-                    <td className="py-4 px-6 text-slate-400 font-medium">{inv.cashierName}</td>
-                    <td className="py-4 px-6 font-black text-indigo-400">
+          <>
+            {/* Mobile Card View (< 640px) */}
+            <div className="block sm:hidden p-3 space-y-3">
+              {invoices.map((inv) => (
+                <div
+                  key={inv._id}
+                  className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-3 transition-colors hover:border-slate-700"
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-850 pb-2">
+                    <span className="font-bold text-slate-200 font-mono text-xs bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                      {inv.invoiceNumber}
+                    </span>
+                    <span className="font-black text-indigo-400 text-sm">
                       {currencySymbol}
                       {inv.grandTotal?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="py-4 px-6 text-right space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedInvoice(inv);
-                          setIsModalOpen(true);
-                        }}
-                        className="px-2.5 py-1.5 bg-slate-950 border border-slate-850 hover:bg-slate-800 text-slate-350 rounded-lg text-[10px] font-bold cursor-pointer"
-                      >
-                        Inspect Details
-                      </button>
-                    </td>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <span className="text-[9px] text-slate-500 block uppercase font-bold">Customer</span>
+                      <span className="font-semibold text-slate-300 truncate block">{inv.customerName}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-500 block uppercase font-bold">Cashier</span>
+                      <span className="text-slate-400 truncate block">{inv.cashierName}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-[9px] text-slate-500 block uppercase font-bold">Date</span>
+                      <span className="text-slate-400 font-mono text-[10px]">{new Date(inv.date).toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedInvoice(inv);
+                      setIsModalOpen(true);
+                    }}
+                    className="w-full py-2 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-800/50 text-indigo-300 rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    Inspect Details
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= 640px) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-850 bg-slate-950 text-slate-400 font-semibold">
+                    <th className="py-3 px-6">Invoice Code</th>
+                    <th className="py-3 px-6">Billing Date</th>
+                    <th className="py-3 px-6">Customer Name</th>
+                    <th className="py-3 px-6">Cashier Name</th>
+                    <th className="py-3 px-6">Total Amount</th>
+                    <th className="py-3 px-6 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-800/40">
+                  {invoices.map((inv) => (
+                    <tr key={inv._id} className="hover:bg-slate-800/10">
+                      <td className="py-4 px-6 font-bold text-slate-200 font-mono text-[10px]">{inv.invoiceNumber}</td>
+                      <td className="py-4 px-6 text-slate-400 font-mono text-[10px]">{new Date(inv.date).toLocaleString()}</td>
+                      <td className="py-4 px-6 font-semibold text-slate-300">{inv.customerName}</td>
+                      <td className="py-4 px-6 text-slate-400 font-medium">{inv.cashierName}</td>
+                      <td className="py-4 px-6 font-black text-indigo-400">
+                        {currencySymbol}
+                        {inv.grandTotal?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-4 px-6 text-right space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedInvoice(inv);
+                            setIsModalOpen(true);
+                          }}
+                          className="px-2.5 py-1.5 bg-slate-950 border border-slate-850 hover:bg-slate-800 text-slate-350 rounded-lg text-[10px] font-bold cursor-pointer"
+                        >
+                          Inspect Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* DETAIL DRAWER / POPUP */}
       {isModalOpen && selectedInvoice && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className={`bg-slate-900 border border-slate-850 rounded-2xl w-full ${isEditing ? 'max-w-md' : 'max-w-sm'} shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto`}>
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50">
+          <div className={`bg-slate-900 border border-slate-850 rounded-2xl w-full ${isEditing ? 'max-w-md' : 'max-w-sm'} shadow-2xl p-4 sm:p-6 relative max-h-[90vh] overflow-y-auto`}>
             <button
               onClick={() => {
                 setIsEditing(false);
                 setSearchProductQuery('');
                 setIsModalOpen(false);
               }}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-200"
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-200 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -509,7 +559,7 @@ const InvoiceHistory = () => {
                 </div>
 
                 {/* Customer & Payment Method */}
-                <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div>
                     <label className="text-[9px] text-slate-400 block mb-1 uppercase tracking-wider font-bold">Customer Name</label>
                     <div className="relative">
@@ -619,7 +669,7 @@ const InvoiceHistory = () => {
                 </div>
 
                 {/* Discount & Tax input fields */}
-                <div className="grid grid-cols-2 gap-3 text-xs pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
                   <div>
                     <label className="text-[9px] text-slate-400 block mb-1 uppercase tracking-wider font-bold">Discount (%)</label>
                     <div className="relative">
