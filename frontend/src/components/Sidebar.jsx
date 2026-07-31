@@ -140,7 +140,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       </nav>
 
       {/* User profile segment */}
-      <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex flex-col gap-3">
+      <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex flex-col gap-3 shrink-0">
         <div
           onClick={() => {
             onClose();
