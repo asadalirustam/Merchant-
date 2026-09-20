@@ -1,10 +1,11 @@
-import { useContext, lazy, Suspense } from 'react';
+﻿import { useContext, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthContext } from './context/AuthContext';
 import ProtectedLayout from './components/ProtectedLayout';
 import ToastContainer from './components/ToastContainer';
 
 // Lazy-loaded Pages for fast code-splitting
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const CEODashboard = lazy(() => import('./pages/CEODashboard'));
 const AdminManagement = lazy(() => import('./pages/AdminManagement'));
@@ -38,11 +39,13 @@ const RootRedirect = () => {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  // Authenticated: redirect to dashboard
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
   }
 
-  return <Navigate to="/dashboard" replace />;
+  // Unauthenticated: show landing page
+  return <LandingPage />;
 };
 
 function App() {
@@ -53,7 +56,8 @@ function App() {
 
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Public auth route */}
+          {/* Public Routes */}
+          <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
 
           {/* CEO-Only Protected Routes */}
@@ -78,7 +82,6 @@ function App() {
           </Route>
 
           {/* Catch-all fallback redirections */}
-          <Route path="/" element={<RootRedirect />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
